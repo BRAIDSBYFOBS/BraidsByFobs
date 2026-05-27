@@ -145,11 +145,11 @@
   <div id="footer-slot"></div>
 
   <script type="module">
-    import { injectNav, injectFooter, requireAdmin, escapeHtml, styleImgSrc } from "../scripts/common.js";
+    import { injectNav, injectFooter, requireAdmin, escapeHtml, styleImgSrc, siteImgSrc } from "../scripts/common.js";
     import {
       db, collection, getDocs, addDoc, doc, getDoc, setDoc, updateDoc, deleteDoc,
       query, orderBy, fmtMoney, fmtDate, fmtTime, fmtDuration, serverTimestamp,
-      uploadImage
+      githubUploadUrl, githubBrowseUrl, uploadImageToRepo, canUploadViaFunction
     } from "../scripts/firebase-config.js";
     import { getAllStyles, invalidateStyleCache } from "../scripts/styles-data.js";
     import {
@@ -336,12 +336,19 @@
                        style="${existing.image ? '' : 'display:none'}"
                        onerror="this.style.display='none'">
                   <div style="flex:1">
-                    <input type="file" accept="image/*" id="style-photo-input" style="font-size:0.9rem">
-                    <div class="upload-status" id="style-photo-status">JPG/PNG, up to 10 MB. Replaces the current image.</div>
+                    ${canUploadViaFunction()
+                      ? `<input type="file" accept="image/*" id="style-photo-input" style="font-size:0.9rem">
+                         <div class="upload-status" id="style-photo-status">Pick a photo — it gets committed to <code>images/styles/</code> in the repo.</div>`
+                      : ""}
+                    <input name="image" id="style-image-url" value="${escapeHtml(existing.image || "")}"
+                      placeholder="e.g. knotless-medium.jpg" style="font-size:0.92rem; margin-top:8px">
+                    <div class="upload-status">
+                      ${canUploadViaFunction()
+                        ? `Or type a filename / path that's already in <code>images/styles/</code>.`
+                        : `Filename of a photo in <code>images/styles/</code>. ${repoLinks("images/styles")}`}
+                    </div>
                   </div>
                 </div>
-                <input name="image" id="style-image-url" value="${escapeHtml(existing.image || "")}"
-                  placeholder="Image URL or filename in /images/styles/" style="font-size:0.85rem">
               </div>
 
               <div class="field"><label>Short description</label><input name="shortDesc" value="${escapeHtml(existing.shortDesc || "")}"></div>
@@ -365,36 +372,38 @@
       document.getElementById("cancel-btn").addEventListener("click", close);
 
       const imageInput = document.getElementById("style-image-url");
-      const photoInput = document.getElementById("style-photo-input");
       const thumb = document.getElementById("style-thumb");
-      const photoStatus = document.getElementById("style-photo-status");
-      const saveBtn = document.getElementById("save-btn");
 
       function refreshThumb() {
         const v = imageInput.value.trim();
         if (!v) { thumb.style.display = "none"; return; }
-        thumb.src = /^https?:/.test(v) ? v : styleImgSrc(v);
+        thumb.src = styleImgSrc(v);
         thumb.style.display = "block";
       }
       imageInput.addEventListener("input", refreshThumb);
 
-      photoInput.addEventListener("change", async () => {
-        const file = photoInput.files?.[0];
-        if (!file) return;
-        photoStatus.textContent = "Uploading…";
-        saveBtn.disabled = true;
-        try {
-          const url = await uploadImage(file, "styles");
-          imageInput.value = url;
-          refreshThumb();
-          photoStatus.textContent = "Uploaded.";
-        } catch (err) {
-          photoStatus.textContent = `Upload failed: ${err.message}`;
-        } finally {
-          saveBtn.disabled = false;
-          photoInput.value = "";
-        }
-      });
+      const stylePhotoInput = document.getElementById("style-photo-input");
+      if (stylePhotoInput) {
+        const status = document.getElementById("style-photo-status");
+        const saveBtn = document.getElementById("save-btn");
+        stylePhotoInput.addEventListener("change", async () => {
+          const file = stylePhotoInput.files?.[0];
+          if (!file) return;
+          status.textContent = "Uploading to GitHub…";
+          if (saveBtn) saveBtn.disabled = true;
+          try {
+            const path = await uploadImageToRepo(file, "styles");
+            imageInput.value = path;
+            refreshThumb();
+            status.innerHTML = `Committed to repo as <code>${escapeHtml(path)}</code>. GitHub Pages will republish in ~1–2 min.`;
+          } catch (err) {
+            status.textContent = `Upload failed: ${err.message}`;
+          } finally {
+            if (saveBtn) saveBtn.disabled = false;
+            stylePhotoInput.value = "";
+          }
+        });
+      }
 
       const form = document.getElementById("style-form");
       form.addEventListener("submit", async (e) => {
@@ -595,9 +604,9 @@
         </form>
       `;
 
-      bindImageUpload("hero", "site");
-      bindImageUpload("about", "site");
-      bindImageUpload("cta", "site");
+      bindImagePath("hero");
+      bindImagePath("about");
+      bindImagePath("cta");
       bindTestimonials();
 
       document.getElementById("add-testimonial").addEventListener("click", () => {
@@ -638,59 +647,80 @@
     }
 
     function imageUploadHtml(key, currentUrl) {
-      const hiddenName = `${key}.imageUrl`;
+      const inputName = `${key}.imageUrl`;
+      const previewSrc = currentUrl ? siteImgSrc(currentUrl) : "";
       return `
         <div class="upload-row">
           <img class="upload-thumb" id="${key}-thumb"
-               src="${currentUrl ? escapeHtml(currentUrl) : ''}"
+               src="${escapeHtml(previewSrc)}"
                style="${currentUrl ? '' : 'display:none'}"
                onerror="this.style.display='none'" alt="">
           <div style="flex:1">
-            <input type="file" accept="image/*" id="${key}-file" style="font-size:0.9rem">
-            <div class="upload-status" id="${key}-status">JPG/PNG, up to 10 MB.</div>
+            ${canUploadViaFunction()
+              ? `<input type="file" accept="image/*" id="${key}-file" style="font-size:0.9rem">
+                 <div class="upload-status" id="${key}-status">Pick a photo — it gets committed to <code>images/site/</code> in the repo.</div>`
+              : ""}
+            <input name="${inputName}" id="${key}-url"
+                   value="${escapeHtml(currentUrl || "")}"
+                   placeholder="e.g. images/site/${key}.jpg"
+                   style="font-size:0.92rem; margin-top:8px">
+            <div class="upload-status">
+              ${canUploadViaFunction()
+                ? `Or type a path already inside the repo.`
+                : `Path of the photo inside the repo. ${repoLinks("images/site")}`}
+            </div>
           </div>
-          ${currentUrl ? `<button type="button" class="btn btn-ghost small-btn" id="${key}-clear">Remove</button>` : ""}
         </div>
-        <input type="hidden" name="${hiddenName}"
-               id="${key}-url" value="${escapeHtml(currentUrl || "")}">
       `;
     }
 
-    function bindImageUpload(key, folder) {
-      const fileEl = document.getElementById(`${key}-file`);
+    function bindImagePath(key) {
       const urlEl = document.getElementById(`${key}-url`);
       const thumb = document.getElementById(`${key}-thumb`);
-      const status = document.getElementById(`${key}-status`);
-      const clearBtn = document.getElementById(`${key}-clear`);
+      const fileEl = document.getElementById(`${key}-file`);
+      const statusEl = document.getElementById(`${key}-status`);
       const saveBtn = document.getElementById("save-site");
 
-      if (clearBtn) {
-        clearBtn.addEventListener("click", () => {
-          urlEl.value = "";
-          thumb.style.display = "none";
-          clearBtn.remove();
-          status.textContent = "Image cleared. Save to apply.";
+      const refresh = () => {
+        const v = urlEl.value.trim();
+        if (!v) { thumb.style.display = "none"; return; }
+        thumb.src = siteImgSrc(v);
+        thumb.style.display = "block";
+      };
+      urlEl.addEventListener("input", refresh);
+
+      if (fileEl) {
+        fileEl.addEventListener("change", async () => {
+          const file = fileEl.files?.[0];
+          if (!file) return;
+          statusEl.textContent = "Uploading to GitHub…";
+          if (saveBtn) saveBtn.disabled = true;
+          try {
+            const path = await uploadImageToRepo(file, "site");
+            urlEl.value = path;
+            refresh();
+            statusEl.innerHTML = `Committed as <code>${escapeHtml(path)}</code>. Click Save below to apply, and GitHub Pages will republish in ~1–2 min.`;
+          } catch (err) {
+            statusEl.textContent = `Upload failed: ${err.message}`;
+          } finally {
+            if (saveBtn) saveBtn.disabled = false;
+            fileEl.value = "";
+          }
         });
       }
+    }
 
-      fileEl.addEventListener("change", async () => {
-        const file = fileEl.files?.[0];
-        if (!file) return;
-        status.textContent = "Uploading…";
-        if (saveBtn) saveBtn.disabled = true;
-        try {
-          const url = await uploadImage(file, folder);
-          urlEl.value = url;
-          thumb.src = url;
-          thumb.style.display = "block";
-          status.textContent = "Uploaded. Save to apply.";
-        } catch (err) {
-          status.textContent = `Upload failed: ${err.message}`;
-        } finally {
-          if (saveBtn) saveBtn.disabled = false;
-          fileEl.value = "";
-        }
-      });
+    function repoLinks(folder) {
+      const upload = githubUploadUrl(folder);
+      const browse = githubBrowseUrl(folder);
+      if (!upload) {
+        return `<em>Set <code>GITHUB_REPO</code> in <code>scripts/firebase-config.js</code> to enable one-click upload links.</em>`;
+      }
+      return `
+        <a href="${upload}" target="_blank" rel="noopener">Upload a photo to GitHub →</a>
+        &middot;
+        <a href="${browse}" target="_blank" rel="noopener">Browse existing</a>
+      `;
     }
 
     function testimonialRowHtml(t, i) {

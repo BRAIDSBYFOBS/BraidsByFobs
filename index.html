@@ -137,7 +137,7 @@
   <div id="footer-slot"></div>
 
   <script type="module">
-    import { injectNav, injectFooter, styleImgSrc, escapeHtml } from "./scripts/common.js";
+    import { injectNav, injectFooter, styleImgSrc, siteImgSrc, escapeHtml } from "./scripts/common.js";
     import { getFeaturedStyles } from "./scripts/styles-data.js";
     import { fmtMoney, fmtDuration } from "./scripts/firebase-config.js";
     import { getSiteContent } from "./scripts/site-content.js";
@@ -172,7 +172,7 @@
       const heroImg = document.getElementById("hero-img");
       const heroPlaceholder = document.getElementById("hero-placeholder");
       if (content.hero.imageUrl) {
-        heroImg.src = content.hero.imageUrl;
+        heroImg.src = siteImgSrc(content.hero.imageUrl);
         if (heroPlaceholder) heroPlaceholder.style.display = "none";
       }
 
@@ -197,7 +197,7 @@
       setText("about-cta", content.about.ctaLabel);
       if (content.about.imageUrl) {
         const aboutImg = document.getElementById("about-image");
-        aboutImg.style.backgroundImage = `url("${content.about.imageUrl}")`;
+        aboutImg.style.backgroundImage = `url("${siteImgSrc(content.about.imageUrl)}")`;
         aboutImg.style.backgroundSize = "cover";
         aboutImg.style.backgroundPosition = "center";
       }
@@ -219,7 +219,7 @@
       if (content.cta.imageUrl) {
         const banner = document.getElementById("cta-banner");
         banner.style.backgroundImage =
-          `linear-gradient(135deg, rgba(200,155,91,0.55), rgba(92,58,33,0.65)), url("${content.cta.imageUrl}")`;
+          `linear-gradient(135deg, rgba(200,155,91,0.55), rgba(92,58,33,0.65)), url("${siteImgSrc(content.cta.imageUrl)}")`;
         banner.style.backgroundSize = "cover";
         banner.style.backgroundPosition = "center";
       }

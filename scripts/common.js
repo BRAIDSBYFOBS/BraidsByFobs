@@ -136,11 +136,25 @@ export function rootPath() {
   return /\/pages\//.test(path) ? "../" : "./";
 }
 
-// Build a path to an image in /images/styles relative to current page
+// Build a path to an image in /images/styles relative to current page.
+// Accepts either a bare filename ("knotless-medium.jpg") or a path inside the
+// repo ("images/styles/knotless-medium.jpg") — both resolve to the right URL.
 export function styleImgSrc(filename) {
   if (!filename) return "";
   if (/^https?:/.test(filename)) return filename;
-  return `${rootPath()}images/styles/${filename}`;
+  const trimmed = filename.replace(/^\.?\/+/, "");
+  if (trimmed.startsWith("images/")) return `${rootPath()}${trimmed}`;
+  return `${rootPath()}images/styles/${trimmed}`;
+}
+
+// Build a URL for any image path inside the repo, resolved from the current
+// page. Accepts a full URL (passed through), a leading-slash or "./" prefix,
+// or a repo-relative path like "images/site/hero.jpg".
+export function siteImgSrc(path) {
+  if (!path) return "";
+  if (/^https?:/.test(path)) return path;
+  const trimmed = String(path).replace(/^\.?\/+/, "");
+  return `${rootPath()}${trimmed}`;
 }
 
 // Tiny query-string helpers

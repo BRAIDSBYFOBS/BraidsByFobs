@@ -7,7 +7,7 @@ Acuity-style flow: browse styles → pick a date & time → pay deposit → conf
 - **Database / Auth:** Firebase (Firestore + Auth)
 - **Payments:** Stripe via Firebase Cloud Functions
 - **Hosting:** GitHub Pages (static front-end) + Firebase (Functions only)
-- **Images:** stored locally in `images/` (not Firebase Storage)
+- **Images:** committed to `images/` inside the repo (no cloud storage)
 
 ---
 
@@ -105,12 +105,8 @@ Without Firebase configured, the site will:
 
 8. Deploy rules & indexes:
    ```powershell
-   firebase deploy --only firestore:rules,firestore:indexes,storage
+   firebase deploy --only firestore:rules,firestore:indexes
    ```
-
-   > The first time you deploy `storage`, Firebase will ask you to enable
-   > Cloud Storage on the project if it isn't already. Click through the
-   > prompt; the rules in `storage.rules` will then be applied.
 
 9. **Seed your styles.** Sign up on your live site with your admin email, then visit
    `pages/seed.html` and click **Run seed**. This copies `data/seed-styles.json` into
@@ -118,9 +114,15 @@ Without Firebase configured, the site will:
 
 ---
 
-## 2. Add your hairstyle photos
+## 2. Add your photos
 
-Drop image files into `images/styles/`. The seed file references these filenames:
+All photos live in the GitHub repo (not in cloud storage) — the same place
+that powers GitHub Pages. There are two folders:
+
+- `images/styles/` — one photo per hairstyle (referenced from the Styles tab)
+- `images/site/` — homepage hero, about photo, optional CTA banner image
+
+The seed file references these style filenames:
 
 ```
 knotless-medium.jpg
@@ -135,12 +137,84 @@ kids-braids.jpg
 ```
 
 If an image is missing, the card falls back to a styled placeholder with the
-style name — so nothing breaks if you upload them one at a time. To change which
-file a style uses, edit it from `pages/admin.html`.
+style name — so nothing breaks if you upload them one at a time.
 
 Recommended size: **800×1000 px** (4:5 aspect ratio), JPEG, < 300 KB each.
 
-Also drop `images/hero.jpg` for the landing-page hero (same shape).
+### How an admin uploads a new photo
+
+Two paths — pick whichever you prefer. The admin dashboard adapts automatically
+based on whether the upload Cloud Function is configured.
+
+#### Easy mode — file picker in the admin (recommended)
+
+Once you've completed the **Cloud Function setup** below, the Styles and Site
+tabs show a regular file picker. The admin clicks **Choose file**, picks a
+photo from their device, and the function commits it straight into
+`images/styles/` or `images/site/` in the repo. GitHub Pages republishes in
+~1–2 minutes and the photo is live.
+
+#### Manual mode (no Functions needed)
+
+Set `GITHUB_REPO` in `scripts/firebase-config.js` and the admin gets an
+**"Upload a photo to GitHub →"** link on each image field. The link opens
+GitHub's drag-and-drop upload page targeted at the right folder; commit there
+and type the filename into the admin form.
+
+You can also push to `images/styles/` or `images/site/` from a local clone.
+
+### Cloud Function setup (for the file-picker upload flow)
+
+The `uploadImage` Cloud Function commits images to your repo on the admin's
+behalf using a GitHub Personal Access Token that's stored server-side.
+
+1. **Create a fine-grained PAT.**
+   - Go to [github.com/settings/personal-access-tokens/new](https://github.com/settings/personal-access-tokens/new).
+   - "Resource owner" = whoever owns the site repo.
+   - "Repository access" → **Only select repositories** → pick the site repo.
+   - "Repository permissions" → **Contents: Read and write**.
+   - Copy the generated token (starts with `github_pat_...`). It's shown
+     once — keep it for the next step.
+
+2. **Store the token as a Firebase secret:**
+   ```powershell
+   cd functions
+   firebase functions:secrets:set GITHUB_TOKEN
+   ```
+   Paste the PAT when prompted.
+
+3. **Tell the function which repo to commit to.** Copy
+   `functions/.env.example` to `functions/.env` and edit:
+   ```
+   GITHUB_REPO=blessingfobs/BraidsByFobs
+   GITHUB_BRANCH=main
+   ```
+   (`functions/.env` is git-ignored.)
+
+4. **Deploy:**
+   ```powershell
+   firebase deploy --only functions
+   ```
+   At the end of the deploy, copy the printed URL for `createCheckoutSession`
+   (e.g. `https://us-central1-yourproj.cloudfunctions.net/createCheckoutSession`).
+   Set its host portion as `FUNCTIONS_BASE_URL` in `scripts/firebase-config.js`:
+   ```js
+   export const FUNCTIONS_BASE_URL = "https://us-central1-yourproj.cloudfunctions.net";
+   ```
+
+5. **Sanity check.** Sign in to the site as an admin, open
+   `pages/admin.html` → Styles → Edit any style. You should see a regular
+   file picker labelled "Pick a photo — it gets committed to images/styles/
+   in the repo." Pick a small JPG; within a couple of seconds the form fills
+   in a path like `images/styles/1716...-photo.jpg`. Check the repo on GitHub
+   to confirm the new commit. GitHub Pages will republish automatically.
+
+> **Note on plans.** Cloud Functions require the Firebase **Blaze**
+> (pay-as-you-go) plan. The free tier is generous; for a single-business
+> site you'll almost certainly stay at $0.
+
+If you later rotate the PAT, just re-run
+`firebase functions:secrets:set GITHUB_TOKEN` and redeploy functions.
 
 ---
 
@@ -267,16 +341,16 @@ expenses/{auto-id}                (Admin → Expenses)
 | Task                                | Where                                           |
 |-------------------------------------|--------------------------------------------------|
 | Add / edit a hairstyle              | `pages/admin.html` → Styles → Edit               |
-| Upload a hairstyle photo            | `pages/admin.html` → Styles → Edit → "Photo"     |
+| Add a hairstyle photo               | Drop file in `images/styles/` (or use "Upload a photo to GitHub →" link in admin), then enter the filename in Styles → Edit |
 | Edit homepage copy (hero, about, testimonials, CTA, contact) | `pages/admin.html` → Site |
-| Upload hero / about / CTA banner photos | `pages/admin.html` → Site                    |
+| Replace hero / about / CTA banner photo | Drop file in `images/site/` then set the path in `pages/admin.html` → Site |
 | Track supplies & low-stock alerts   | `pages/admin.html` → Inventory                   |
 | Log expenses & see monthly forecast | `pages/admin.html` → Expenses                    |
 | Mark a date closed                  | `pages/admin.html` → Availability                |
 | Confirm or cancel a booking         | `pages/admin.html` → Bookings → status dropdown  |
 | Change business hours               | `DEFAULT_HOURS` in `scripts/booking.js`          |
 | Change brand colors / fonts         | CSS variables at the top of `styles/main.css`    |
-| Add a new admin                     | `ADMIN_EMAILS` in `scripts/firebase-config.js` **and** `isAdmin()` in `firestore.rules` **and** `isAdmin()` in `storage.rules` |
+| Add a new admin                     | `ADMIN_EMAILS` in `scripts/firebase-config.js` **and** `isAdmin()` in `firestore.rules` |
 
 ---
 
