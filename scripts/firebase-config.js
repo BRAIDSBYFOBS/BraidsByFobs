@@ -1,5 +1,6 @@
 // ============================================================
 // Firebase configuration & shared module
+// Deploy: 2026-05-27 (cache-bust)
 // ------------------------------------------------------------
 // 1. Replace the firebaseConfig values below with your own from
 //    Firebase Console > Project Settings > General > Your apps.
