@@ -37,7 +37,7 @@ export const FUNCTIONS_BASE_URL = "";
 
 // Admin email allowlist — these users see the /admin page.
 // (Also enforced in Firestore security rules.)
-export const ADMIN_EMAILS = ["owner@braidsbyfobs.com"];
+export const ADMIN_EMAILS = ["blessingfobs@gmail.com"];
 
 // ------------------------------------------------------------
 // True until you've replaced the placeholder values above.
