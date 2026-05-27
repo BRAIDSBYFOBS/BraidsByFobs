@@ -22,12 +22,12 @@ import {
 
 // ---- YOUR CONFIG GOES HERE ---------------------------------
 export const firebaseConfig = {
-  apiKey: "REPLACE_ME",
-  authDomain: "REPLACE_ME.firebaseapp.com",
-  projectId: "REPLACE_ME",
-  storageBucket: "REPLACE_ME.appspot.com",
-  messagingSenderId: "REPLACE_ME",
-  appId: "REPLACE_ME"
+    apiKey: "AIzaSyD1NyBrTydCH7qrnwe97G4wc2oJzgTJ6Q8",
+    authDomain: "braids-by-fobs.firebaseapp.com",
+    projectId: "braids-by-fobs",
+    storageBucket: "braids-by-fobs.firebasestorage.app",
+    messagingSenderId: "594130482778",
+    appId: "1:594130482778:web:299cb5e2e5c55b80b84a63"
 };
 
 // URL of your deployed `createCheckoutSession` Cloud Function.
