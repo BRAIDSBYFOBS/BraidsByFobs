@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Styles — Braids By Fobs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body>
+  <div id="nav-slot"></div>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <span class="eyebrow">Gallery</span>
+        <h2>All styles</h2>
+        <p>Filter by category, then tap a style to see details and book.</p>
+      </div>
+
+      <div id="category-filter" style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-bottom:32px"></div>
+
+      <div class="style-grid" id="all-grid">
+        <div class="center-spinner"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <div id="footer-slot"></div>
+
+  <script type="module">
+    import { injectNav, injectFooter, styleImgSrc, escapeHtml } from "../scripts/common.js";
+    import { getAllStyles } from "../scripts/styles-data.js";
+    import { fmtMoney, fmtDuration } from "../scripts/firebase-config.js";
+
+    injectNav("styles");
+    injectFooter();
+
+    const grid = document.getElementById("all-grid");
+    const filterEl = document.getElementById("category-filter");
+
+    function render(list) {
+      if (!list.length) {
+        grid.innerHTML = `<div class="empty-state"><h3>No styles in this category</h3></div>`;
+        return;
+      }
+      grid.innerHTML = list.map(s => `
+        <a class="style-card" href="style.html?id=${encodeURIComponent(s.id)}">
+          <div class="thumb">
+            <div class="placeholder">${escapeHtml(s.name)}</div>
+            ${s.image ? `<img src="${styleImgSrc(s.image)}" alt="${escapeHtml(s.name)}" onerror="this.remove()">` : ""}
+          </div>
+          <div class="body">
+            <h3>${escapeHtml(s.name)}</h3>
+            <p style="margin:0">${escapeHtml(s.shortDesc || "")}</p>
+            <div class="meta">
+              <span class="duration">${fmtDuration(s.durationMin)}</span>
+              <span class="price">${fmtMoney(s.priceCents)}</span>
+            </div>
+          </div>
+        </a>
+      `).join("");
+    }
+
+    (async () => {
+      try {
+        const all = await getAllStyles();
+        const categories = ["All", ...Array.from(new Set(all.map(s => s.category).filter(Boolean)))];
+        filterEl.innerHTML = categories.map((c, i) => `
+          <button class="btn ${i === 0 ? "btn-primary" : "btn-ghost"}" data-cat="${escapeHtml(c)}"
+            style="padding:8px 16px; font-size:0.9rem">${escapeHtml(c)}</button>
+        `).join("");
+        render(all);
+        filterEl.addEventListener("click", (e) => {
+          const btn = e.target.closest("button[data-cat]");
+          if (!btn) return;
+          filterEl.querySelectorAll("button").forEach(b => {
+            b.classList.remove("btn-primary"); b.classList.add("btn-ghost");
+          });
+          btn.classList.remove("btn-ghost"); btn.classList.add("btn-primary");
+          const cat = btn.dataset.cat;
+          render(cat === "All" ? all : all.filter(s => s.category === cat));
+        });
+      } catch (err) {
+        grid.innerHTML = `<div class="empty-state"><h3>Couldn't load styles</h3><p>${escapeHtml(err.message)}</p></div>`;
+      }
+    })();
+  </script>
+</body>
+</html>

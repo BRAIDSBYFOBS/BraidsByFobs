@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Book — Braids By Fobs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body>
+  <div id="nav-slot"></div>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-head" style="margin-bottom:24px">
+        <span class="eyebrow">Book online</span>
+        <h2>Reserve your appointment</h2>
+        <p>Three quick steps. We'll confirm by email.</p>
+      </div>
+
+      <div class="booking-layout">
+        <div class="booking-main">
+          <div class="step-tabs" id="step-tabs"></div>
+          <div id="step-content"></div>
+        </div>
+        <aside class="booking-summary">
+          <h3>Summary</h3>
+          <div id="summary-content"><p style="margin:0">Pick a style to get started.</p></div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <div id="footer-slot"></div>
+
+  <script type="module">
+    import { injectNav, injectFooter } from "../scripts/common.js";
+    import { initBookingPage } from "../scripts/booking.js";
+
+    injectNav("book");
+    injectFooter();
+    initBookingPage();
+  </script>
+</body>
+</html>

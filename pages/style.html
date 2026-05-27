@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Style — Braids By Fobs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body>
+  <div id="nav-slot"></div>
+
+  <section class="section">
+    <div class="container" id="style-root">
+      <div class="center-spinner"><div class="spinner"></div></div>
+    </div>
+  </section>
+
+  <div id="footer-slot"></div>
+
+  <script type="module">
+    import { injectNav, injectFooter, styleImgSrc, escapeHtml, qs } from "../scripts/common.js";
+    import { getStyleById } from "../scripts/styles-data.js";
+    import { fmtMoney, fmtDuration } from "../scripts/firebase-config.js";
+
+    injectNav("styles");
+    injectFooter();
+
+    const root = document.getElementById("style-root");
+    const id = qs("id");
+
+    (async () => {
+      if (!id) {
+        root.innerHTML = `<div class="empty-state"><h3>No style selected</h3>
+          <p><a href="styles.html" class="btn btn-primary" style="margin-top:12px">Browse styles</a></p></div>`;
+        return;
+      }
+      try {
+        const s = await getStyleById(id);
+        if (!s) {
+          root.innerHTML = `<div class="empty-state"><h3>Style not found</h3>
+            <p><a href="styles.html" class="btn btn-primary" style="margin-top:12px">Back to gallery</a></p></div>`;
+          return;
+        }
+        document.title = `${s.name} — Braids By Fobs`;
+        root.innerHTML = `
+          <div class="style-detail-grid">
+            <div>
+              <div class="style-hero-img" style="position:relative">
+                ${s.image ? `<img src="${styleImgSrc(s.image)}" alt="${escapeHtml(s.name)}"
+                    style="width:100%;height:100%;object-fit:cover" onerror="this.remove()">` : ""}
+              </div>
+            </div>
+            <div class="style-info">
+              <span class="hero-eyebrow">${escapeHtml(s.category || "Style")}</span>
+              <h1 style="margin-top:8px">${escapeHtml(s.name)}</h1>
+              <div class="price-big">${fmtMoney(s.priceCents)}</div>
+              <p style="color:var(--color-muted)">
+                ${escapeHtml(s.description || s.shortDesc || "")}
+              </p>
+              <div class="feature-row" style="grid-template-columns:1fr 1fr; gap:12px; margin:24px 0">
+                <div class="feature" style="padding:14px"><h3 style="margin:0">${fmtDuration(s.durationMin)}</h3><p style="font-size:0.82rem; margin:0">approximate time</p></div>
+                <div class="feature" style="padding:14px"><h3 style="margin:0">${fmtMoney(s.depositCents || 0)}</h3><p style="font-size:0.82rem; margin:0">deposit to book</p></div>
+              </div>
+              <h3 style="font-size:1rem; margin-bottom:8px">What's included</h3>
+              <ul>
+                ${(s.includes || []).map(i => `<li>${escapeHtml(i)}</li>`).join("")}
+              </ul>
+              <a href="book.html?style=${encodeURIComponent(s.id)}" class="btn btn-primary btn-block" style="margin-top:16px">
+                Book this style
+              </a>
+              <a href="styles.html" style="display:block; text-align:center; margin-top:12px; color:var(--color-muted); font-size:0.9rem">&larr; Back to all styles</a>
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        root.innerHTML = `<div class="empty-state"><h3>Couldn't load this style</h3><p>${escapeHtml(err.message)}</p></div>`;
+      }
+    })();
+  </script>
+</body>
+</html>

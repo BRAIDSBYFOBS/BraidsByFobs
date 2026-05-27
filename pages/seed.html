@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Seed Firestore — Braids By Fobs (admin)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body>
+  <div id="nav-slot"></div>
+
+  <section class="section">
+    <div class="container">
+      <div class="form-card" style="max-width:560px">
+        <h2>Seed Firestore</h2>
+        <p class="sub">One-time helper. Loads <code>data/seed-styles.json</code> into the
+          <code>styles</code> collection. Admin only.</p>
+
+        <div id="seed-alert"></div>
+        <button id="seed-btn" class="btn btn-primary btn-block">Run seed</button>
+        <div id="seed-log" style="margin-top:14px; font-family:ui-monospace, monospace;
+              font-size:0.82rem; color:var(--color-muted); white-space:pre-wrap"></div>
+
+        <p style="font-size:0.8rem; color:var(--color-muted); margin-top:18px">
+          After seeding, you can manage styles from the <a href="admin.html">Admin dashboard</a>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <div id="footer-slot"></div>
+
+  <script type="module">
+    import { injectNav, injectFooter, requireAdmin, escapeHtml, rootPath, showAlert } from "../scripts/common.js";
+    import { db, doc, setDoc, serverTimestamp } from "../scripts/firebase-config.js";
+
+    injectNav("admin");
+    injectFooter();
+    await requireAdmin("../index.html");
+
+    const log = (msg) => {
+      document.getElementById("seed-log").textContent += msg + "\n";
+    };
+
+    document.getElementById("seed-btn").addEventListener("click", async () => {
+      const btn = document.getElementById("seed-btn");
+      const alertSlot = document.getElementById("seed-alert");
+      btn.disabled = true;
+      btn.textContent = "Seeding...";
+      try {
+        const res = await fetch(`${rootPath()}data/seed-styles.json`);
+        const styles = await res.json();
+        for (const s of styles) {
+          const { id, ...rest } = s;
+          await setDoc(doc(db, "styles", id), { ...rest, createdAt: serverTimestamp() }, { merge: true });
+          log(`✓ ${id}`);
+        }
+        showAlert(alertSlot, `Seeded ${styles.length} styles.`, "success");
+      } catch (err) {
+        showAlert(alertSlot, err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Run seed";
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+Drop hairstyle photos here. Filenames must match the `image` field on each
+style in data/seed-styles.json (or in the Firestore `styles` collection).
+
+Recommended: 800x1000px (4:5), JPEG, under 300KB. If an image is missing,
+the card falls back to a styled name placeholder so nothing breaks.

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Booking confirmed — Braids By Fobs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body>
+  <div id="nav-slot"></div>
+
+  <section class="section">
+    <div class="container">
+      <div class="form-card" style="max-width:560px; text-align:center">
+        <div style="width:64px;height:64px;border-radius:50%;background:#e7f5ec;color:var(--color-success);
+                    display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:2rem">&#10003;</div>
+        <h2 style="text-align:center">You're booked!</h2>
+        <p style="text-align:center">We've received your appointment request. You'll get a confirmation email shortly.</p>
+
+        <div id="demo-note" style="display:none">
+          <div class="alert alert-info" style="text-align:left">
+            <strong>Demo mode:</strong> No payment was taken because Stripe Functions
+            aren't deployed yet. See <code>README.md</code> for how to enable real
+            checkout.
+          </div>
+        </div>
+
+        <div style="display:flex; gap:12px; justify-content:center; margin-top:18px; flex-wrap:wrap">
+          <a class="btn btn-primary" href="account.html">View my bookings</a>
+          <a class="btn btn-ghost" href="../index.html">Back to home</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="footer-slot"></div>
+
+  <script type="module">
+    import { injectNav, injectFooter, qs } from "../scripts/common.js";
+    injectNav("");
+    injectFooter();
+    if (qs("demo")) document.getElementById("demo-note").style.display = "";
+  </script>
+</body>
+</html>

@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin — Braids By Fobs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body>
+  <div id="nav-slot"></div>
+
+  <section class="section">
+    <div class="container">
+      <span class="hero-eyebrow">Admin</span>
+      <h1 style="margin:8px 0 18px">Dashboard</h1>
+
+      <div class="admin-tabs">
+        <button data-tab="bookings" class="active">Bookings</button>
+        <button data-tab="styles">Styles</button>
+        <button data-tab="availability">Availability</button>
+      </div>
+
+      <div id="tab-content">
+        <div class="center-spinner"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Edit-style modal -->
+  <div id="modal-root"></div>
+
+  <div id="footer-slot"></div>
+
+  <script type="module">
+    import { injectNav, injectFooter, requireAdmin, escapeHtml } from "../scripts/common.js";
+    import {
+      db, collection, getDocs, addDoc, doc, getDoc, setDoc, updateDoc, deleteDoc,
+      query, orderBy, fmtMoney, fmtDate, fmtTime, fmtDuration, serverTimestamp
+    } from "../scripts/firebase-config.js";
+    import { getAllStyles, invalidateStyleCache } from "../scripts/styles-data.js";
+
+    injectNav("admin");
+    injectFooter();
+    await requireAdmin("../index.html");
+
+    const tabContent = document.getElementById("tab-content");
+    const tabsEl = document.querySelector(".admin-tabs");
+
+    tabsEl.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-tab]");
+      if (!btn) return;
+      tabsEl.querySelectorAll("button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      renderTab(btn.dataset.tab);
+    });
+
+    function renderTab(tab) {
+      if (tab === "bookings") return renderBookings();
+      if (tab === "styles") return renderStyles();
+      if (tab === "availability") return renderAvailability();
+    }
+    renderTab("bookings");
+
+    // ---------- BOOKINGS ----------
+    async function renderBookings() {
+      tabContent.innerHTML = `<div class="center-spinner"><div class="spinner"></div></div>`;
+      try {
+        const q = query(collection(db, "bookings"), orderBy("startAt", "desc"));
+        const snap = await getDocs(q);
+        const bookings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (!bookings.length) {
+          tabContent.innerHTML = `<div class="empty-state"><h3>No bookings yet</h3></div>`;
+          return;
+        }
+        tabContent.innerHTML = `
+          <div class="table-card">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Client</th>
+                  <th>Style</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                ${bookings.map(b => `
+                  <tr data-id="${b.id}">
+                    <td>
+                      <strong>${fmtDate(b.startAt)}</strong><br/>
+                      <span style="color:var(--color-muted);font-size:0.85rem">${fmtTime(b.startAt)} &middot; ${fmtDuration(b.durationMin || 0)}</span>
+                    </td>
+                    <td>
+                      ${escapeHtml(b.customer?.name || "—")}<br/>
+                      <span style="color:var(--color-muted);font-size:0.85rem">${escapeHtml(b.customer?.email || "")}</span>
+                    </td>
+                    <td>${escapeHtml(b.styleName || "")}</td>
+                    <td>${fmtMoney(b.priceCents || 0)}</td>
+                    <td><span class="badge badge-${escapeHtml(b.status || "pending")}">${escapeHtml(b.status || "pending")}</span></td>
+                    <td>
+                      <select data-action="status" style="padding:6px 8px;border:1px solid var(--color-border);border-radius:6px">
+                        <option value="">Set status…</option>
+                        <option value="confirmed">Confirm</option>
+                        <option value="completed">Complete</option>
+                        <option value="cancelled">Cancel</option>
+                      </select>
+                    </td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        `;
+        tabContent.querySelectorAll("select[data-action='status']").forEach(sel => {
+          sel.addEventListener("change", async (e) => {
+            const status = e.target.value;
+            if (!status) return;
+            const id = e.target.closest("tr").dataset.id;
+            await updateDoc(doc(db, "bookings", id), { status });
+            renderBookings();
+          });
+        });
+      } catch (err) {
+        tabContent.innerHTML = `<div class="empty-state"><h3>Couldn't load bookings</h3><p>${escapeHtml(err.message)}</p></div>`;
+      }
+    }
+
+    // ---------- STYLES ----------
+    async function renderStyles() {
+      tabContent.innerHTML = `<div class="center-spinner"><div class="spinner"></div></div>`;
+      try {
+        const styles = await getAllStyles({ activeOnly: false });
+        tabContent.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px">
+            <p style="margin:0">Manage your service menu.</p>
+            <button class="btn btn-primary" id="new-style">+ Add style</button>
+          </div>
+          <div class="table-card">
+            <table class="data">
+              <thead>
+                <tr><th>Name</th><th>Category</th><th>Price</th><th>Duration</th><th>Active</th><th></th></tr>
+              </thead>
+              <tbody>
+                ${styles.map(s => `
+                  <tr data-id="${escapeHtml(s.id)}">
+                    <td><strong>${escapeHtml(s.name)}</strong><br/>
+                      <span style="color:var(--color-muted);font-size:0.85rem">${escapeHtml(s.shortDesc || "")}</span>
+                    </td>
+                    <td>${escapeHtml(s.category || "—")}</td>
+                    <td>${fmtMoney(s.priceCents || 0)}</td>
+                    <td>${fmtDuration(s.durationMin || 0)}</td>
+                    <td>${s.active === false ? `<span class="badge badge-cancelled">no</span>` : `<span class="badge badge-confirmed">yes</span>`}</td>
+                    <td>
+                      <button class="btn btn-ghost" data-action="edit" style="padding:6px 12px;font-size:0.85rem">Edit</button>
+                    </td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        `;
+        document.getElementById("new-style").addEventListener("click", () => openStyleModal(null));
+        tabContent.querySelectorAll("button[data-action='edit']").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const id = btn.closest("tr").dataset.id;
+            openStyleModal(id);
+          });
+        });
+      } catch (err) {
+        tabContent.innerHTML = `<div class="empty-state"><h3>Couldn't load styles</h3><p>${escapeHtml(err.message)}</p></div>`;
+      }
+    }
+
+    async function openStyleModal(id) {
+      let existing = { name: "", category: "", priceCents: 0, depositCents: 0, durationMin: 60, image: "", shortDesc: "", description: "", featured: false, active: true };
+      if (id) {
+        try {
+          const snap = await getDoc(doc(db, "styles", id));
+          if (snap.exists()) existing = { id: snap.id, ...snap.data() };
+          else {
+            const all = await getAllStyles({ activeOnly: false });
+            const seed = all.find(s => s.id === id);
+            if (seed) existing = seed;
+          }
+        } catch (_) { /* fallback */ }
+      }
+      const modal = document.getElementById("modal-root");
+      modal.innerHTML = `
+        <div style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px">
+          <div class="form-card" style="max-width:560px;width:100%;max-height:90vh;overflow:auto">
+            <h2>${id ? "Edit style" : "New style"}</h2>
+            <div id="modal-alert"></div>
+            <form id="style-form">
+              <div class="field"><label>Name</label><input name="name" value="${escapeHtml(existing.name)}" required></div>
+              <div class="field"><label>Category</label><input name="category" value="${escapeHtml(existing.category || "")}"></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div class="field"><label>Price (USD)</label><input name="price" type="number" step="0.01" min="0" value="${(existing.priceCents/100).toFixed(2)}" required></div>
+                <div class="field"><label>Deposit (USD)</label><input name="deposit" type="number" step="0.01" min="0" value="${((existing.depositCents||0)/100).toFixed(2)}"></div>
+              </div>
+              <div class="field"><label>Duration (minutes)</label><input name="duration" type="number" min="15" step="15" value="${existing.durationMin}" required></div>
+              <div class="field"><label>Image filename (in /images/styles/)</label><input name="image" value="${escapeHtml(existing.image || "")}" placeholder="e.g. knotless-medium.jpg"></div>
+              <div class="field"><label>Short description</label><input name="shortDesc" value="${escapeHtml(existing.shortDesc || "")}"></div>
+              <div class="field"><label>Full description</label><textarea name="description">${escapeHtml(existing.description || "")}</textarea></div>
+              <div style="display:flex;gap:18px;margin-bottom:12px">
+                <label style="display:flex;align-items:center;gap:8px;font-size:0.92rem"><input type="checkbox" name="featured" ${existing.featured ? "checked" : ""}> Featured on home</label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:0.92rem"><input type="checkbox" name="active" ${existing.active !== false ? "checked" : ""}> Active (bookable)</label>
+              </div>
+              <div style="display:flex;gap:8px;justify-content:space-between">
+                ${id ? `<button type="button" class="btn btn-ghost" id="delete-btn" style="color:var(--color-danger);border-color:var(--color-danger)">Delete</button>` : `<div></div>`}
+                <div style="display:flex;gap:8px">
+                  <button type="button" class="btn btn-ghost" id="cancel-btn">Cancel</button>
+                  <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      `;
+      const close = () => { modal.innerHTML = ""; };
+      document.getElementById("cancel-btn").addEventListener("click", close);
+      const form = document.getElementById("style-form");
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const data = {
+          name: form.name.value.trim(),
+          category: form.category.value.trim(),
+          priceCents: Math.round(parseFloat(form.price.value) * 100),
+          depositCents: Math.round(parseFloat(form.deposit.value || "0") * 100),
+          durationMin: parseInt(form.duration.value, 10),
+          image: form.image.value.trim(),
+          shortDesc: form.shortDesc.value.trim(),
+          description: form.description.value.trim(),
+          featured: form.featured.checked,
+          active: form.active.checked,
+          updatedAt: serverTimestamp()
+        };
+        try {
+          if (id) {
+            await setDoc(doc(db, "styles", id), data, { merge: true });
+          } else {
+            await addDoc(collection(db, "styles"), { ...data, createdAt: serverTimestamp() });
+          }
+          invalidateStyleCache();
+          close();
+          renderStyles();
+        } catch (err) {
+          document.getElementById("modal-alert").innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+        }
+      });
+      const deleteBtn = document.getElementById("delete-btn");
+      if (deleteBtn) {
+        deleteBtn.addEventListener("click", async () => {
+          if (!confirm("Delete this style?")) return;
+          try {
+            await deleteDoc(doc(db, "styles", id));
+            invalidateStyleCache();
+            close();
+            renderStyles();
+          } catch (err) {
+            document.getElementById("modal-alert").innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+          }
+        });
+      }
+    }
+
+    // ---------- AVAILABILITY ----------
+    async function renderAvailability() {
+      tabContent.innerHTML = `
+        <div class="form-card" style="max-width:520px;margin-left:0">
+          <h2>Block a date</h2>
+          <p class="sub">Mark a date closed (e.g. holiday) or set custom hours.</p>
+          <div id="avail-alert"></div>
+          <form id="avail-form">
+            <div class="field"><label>Date</label><input name="date" type="date" required></div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+              <input type="checkbox" id="closed" name="closed">
+              <label for="closed" style="margin:0">Closed all day</label>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" id="hours-fields">
+              <div class="field"><label>Open (24h)</label><input name="open" type="number" min="0" max="23" value="9"></div>
+              <div class="field"><label>Close (24h)</label><input name="close" type="number" min="1" max="23" value="18"></div>
+            </div>
+            <button class="btn btn-primary btn-block" type="submit">Save</button>
+          </form>
+        </div>
+      `;
+      const form = document.getElementById("avail-form");
+      const closedBox = document.getElementById("closed");
+      const hoursFields = document.getElementById("hours-fields");
+      closedBox.addEventListener("change", () => {
+        hoursFields.style.display = closedBox.checked ? "none" : "grid";
+      });
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const date = form.date.value;
+        if (!date) return;
+        const data = closedBox.checked
+          ? { closed: true }
+          : { closed: false, open: parseInt(form.open.value, 10), close: parseInt(form.close.value, 10) };
+        try {
+          await setDoc(doc(db, "availability", date), { ...data, updatedAt: serverTimestamp() }, { merge: true });
+          document.getElementById("avail-alert").innerHTML = `<div class="alert alert-success">Saved.</div>`;
+        } catch (err) {
+          document.getElementById("avail-alert").innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
+        }
+      });
+    }
+  </script>
+</body>
+</html>

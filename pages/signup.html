@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sign up — Braids By Fobs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body>
+  <div id="nav-slot"></div>
+
+  <section class="section">
+    <div class="container">
+      <div class="form-card">
+        <h2>Create your account</h2>
+        <p class="sub">Save styles, see past bookings, and check out faster.</p>
+
+        <div id="alert-slot"></div>
+
+        <form id="signup-form">
+          <div class="field">
+            <label for="name">Full name</label>
+            <input id="name" name="name" type="text" autocomplete="name" required />
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" autocomplete="email" required />
+          </div>
+          <div class="field">
+            <label for="phone">Phone</label>
+            <input id="phone" name="phone" type="tel" autocomplete="tel" />
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" autocomplete="new-password" minlength="6" required />
+          </div>
+          <button class="btn btn-primary btn-block" id="submit-btn" type="submit">Create account</button>
+        </form>
+
+        <div class="divider">or</div>
+        <button id="google-btn" class="btn btn-ghost btn-block" type="button">Continue with Google</button>
+
+        <p style="text-align:center; margin-top:18px; font-size:0.92rem">
+          Already have an account? <a href="login.html">Log in</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <div id="footer-slot"></div>
+
+  <script type="module">
+    import { injectNav, injectFooter, showAlert, qs } from "../scripts/common.js";
+    import {
+      auth, db, doc, setDoc, serverTimestamp,
+      createUserWithEmailAndPassword, updateProfile,
+      GoogleAuthProvider, signInWithPopup
+    } from "../scripts/firebase-config.js";
+
+    injectNav("login");
+    injectFooter();
+
+    const form = document.getElementById("signup-form");
+    const submitBtn = document.getElementById("submit-btn");
+    const googleBtn = document.getElementById("google-btn");
+    const alertSlot = document.getElementById("alert-slot");
+
+    function afterAuth() {
+      const next = qs("next");
+      window.location.href = next ? decodeURIComponent(next) : "account.html";
+    }
+
+    async function ensureUserDoc(user, extra = {}) {
+      try {
+        await setDoc(doc(db, "users", user.uid), {
+          email: user.email,
+          name: user.displayName || extra.name || "",
+          phone: extra.phone || "",
+          createdAt: serverTimestamp()
+        }, { merge: true });
+      } catch (err) {
+        console.warn("Could not write user doc:", err.message);
+      }
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Creating...";
+      try {
+        const name = form.name.value.trim();
+        const email = form.email.value.trim();
+        const phone = form.phone.value.trim();
+        const password = form.password.value;
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        await updateProfile(cred.user, { displayName: name });
+        await ensureUserDoc(cred.user, { name, phone });
+        afterAuth();
+      } catch (err) {
+        showAlert(alertSlot, err.message);
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Create account";
+      }
+    });
+
+    googleBtn.addEventListener("click", async () => {
+      try {
+        const cred = await signInWithPopup(auth, new GoogleAuthProvider());
+        await ensureUserDoc(cred.user);
+        afterAuth();
+      } catch (err) {
+        showAlert(alertSlot, err.message);
+      }
+    });
+  </script>
+</body>
+</html>

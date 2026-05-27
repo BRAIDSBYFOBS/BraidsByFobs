@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>My account — Braids By Fobs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body>
+  <div id="nav-slot"></div>
+
+  <section class="section">
+    <div class="container">
+      <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:24px; flex-wrap:wrap; gap:12px">
+        <div>
+          <span class="hero-eyebrow">Account</span>
+          <h1 style="margin:8px 0 4px" id="hello">My bookings</h1>
+          <p style="margin:0" id="user-line"></p>
+        </div>
+        <a class="btn btn-primary" href="book.html">Book another appointment</a>
+      </div>
+
+      <div id="bookings-root">
+        <div class="center-spinner"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <div id="footer-slot"></div>
+
+  <script type="module">
+    import { injectNav, injectFooter, requireAuth, escapeHtml } from "../scripts/common.js";
+    import {
+      db, collection, query, where, orderBy, getDocs
+    } from "../scripts/firebase-config.js";
+    import { fmtMoney, fmtDate, fmtTime } from "../scripts/firebase-config.js";
+
+    injectNav("account");
+    injectFooter();
+
+    const root = document.getElementById("bookings-root");
+
+    (async () => {
+      const user = await requireAuth("login.html");
+      document.getElementById("hello").textContent = `Hi${user.displayName ? ", " + user.displayName.split(" ")[0] : ""}.`;
+      document.getElementById("user-line").textContent = user.email;
+
+      try {
+        const q = query(
+          collection(db, "bookings"),
+          where("userId", "==", user.uid),
+          orderBy("startAt", "desc")
+        );
+        const snap = await getDocs(q);
+        const bookings = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        if (!bookings.length) {
+          root.innerHTML = `
+            <div class="empty-state">
+              <h3>No bookings yet</h3>
+              <p>Pick a style and lock in your first appointment.</p>
+              <a class="btn btn-primary" href="styles.html" style="margin-top:12px">Browse styles</a>
+            </div>`;
+          return;
+        }
+
+        root.innerHTML = `
+          <div class="table-card">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th>Style</th>
+                  <th>Date</th>
+                  <th>Time</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${bookings.map(b => `
+                  <tr>
+                    <td><strong>${escapeHtml(b.styleName || "Booking")}</strong></td>
+                    <td>${fmtDate(b.startAt)}</td>
+                    <td>${fmtTime(b.startAt)}</td>
+                    <td>${fmtMoney(b.priceCents || 0)}</td>
+                    <td><span class="badge badge-${escapeHtml(b.status || "pending")}">${escapeHtml(b.status || "pending")}</span></td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } catch (err) {
+        root.innerHTML = `
+          <div class="empty-state">
+            <h3>Couldn't load bookings</h3>
+            <p>${escapeHtml(err.message)}</p>
+            <p style="font-size:0.85rem">If this is the first run, make sure your Firestore indexes are deployed.</p>
+          </div>`;
+      }
+    })();
+  </script>
+</body>
+</html>

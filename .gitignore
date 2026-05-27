@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+functions/node_modules/
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+firestore-debug.log
+ui-debug.log
+.runtimeconfig.json
+
+# Local secrets — NEVER commit these
+.env
+.env.*
+functions/.env
+functions/.env.*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Build output
+_site/
+dist/
+build/
+
+# Personal/working notes (not for git)
+.notes/
+

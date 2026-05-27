@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Braids By Fobs — Protective styles, booked online</title>
+  <meta name="description" content="Box braids, knotless, twists, locs, and more. Browse styles and book your appointment online with Braids By Fobs." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+<body>
+  <div id="nav-slot"></div>
+
+  <!-- Hero -->
+  <header class="hero">
+    <div class="container hero-grid">
+      <div>
+        <span class="hero-eyebrow">Protective styles, expertly braided</span>
+        <h1>Beautiful braids,<br/>booked in minutes.</h1>
+        <p class="lead">
+          Browse our gallery of knotless braids, twists, locs, and cornrows.
+          Pick a style, choose a time, and we'll handle the rest &mdash; all online.
+        </p>
+        <div class="hero-cta">
+          <a href="pages/styles.html" class="btn btn-primary">Browse styles</a>
+          <a href="pages/book.html" class="btn btn-ghost">Book an appointment</a>
+        </div>
+      </div>
+      <div class="hero-image">
+        <div class="placeholder">Add hero image at<br/>images/hero.jpg</div>
+        <img id="hero-img" alt="" onerror="this.remove()" src="images/hero.jpg" />
+      </div>
+    </div>
+  </header>
+
+  <!-- Features strip -->
+  <section class="section" style="padding-top:32px">
+    <div class="container">
+      <div class="feature-row">
+        <div class="feature">
+          <div class="icon">1</div>
+          <h3>Pick a style</h3>
+          <p>Explore the gallery and read what's included for each style.</p>
+        </div>
+        <div class="feature">
+          <div class="icon">2</div>
+          <h3>Choose your time</h3>
+          <p>Real-time calendar shows when we're actually available.</p>
+        </div>
+        <div class="feature">
+          <div class="icon">3</div>
+          <h3>Pay your deposit</h3>
+          <p>Secure your slot with a small deposit. Balance due at your appointment.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured styles -->
+  <section class="section" id="featured">
+    <div class="container">
+      <div class="section-head">
+        <span class="eyebrow">Most loved</span>
+        <h2>Featured styles</h2>
+        <p>A few favorites — see the full gallery for everything we offer.</p>
+      </div>
+      <div class="style-grid" id="featured-grid">
+        <div class="style-card"><div class="thumb skeleton"></div><div class="body"><div class="skeleton" style="height:16px;width:60%;margin-bottom:8px"></div><div class="skeleton" style="height:12px;width:80%"></div></div></div>
+        <div class="style-card"><div class="thumb skeleton"></div><div class="body"><div class="skeleton" style="height:16px;width:60%;margin-bottom:8px"></div><div class="skeleton" style="height:12px;width:80%"></div></div></div>
+        <div class="style-card"><div class="thumb skeleton"></div><div class="body"><div class="skeleton" style="height:16px;width:60%;margin-bottom:8px"></div><div class="skeleton" style="height:12px;width:80%"></div></div></div>
+      </div>
+      <div style="text-align:center; margin-top:32px">
+        <a href="pages/styles.html" class="btn btn-ghost">View all styles</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- About -->
+  <section class="section" id="about">
+    <div class="container about-grid">
+      <div class="about-image"></div>
+      <div>
+        <span class="hero-eyebrow">About</span>
+        <h2>Hi, I'm Fobs.</h2>
+        <p>
+          I've been braiding hair for over a decade, specializing in knotless braids and
+          scalp-friendly protective styles. Every appointment is one-on-one and tailored to
+          your hair, lifestyle, and the look you're going for.
+        </p>
+        <p>
+          Sessions are by appointment only so I can give you my full attention &mdash; no rushed
+          chairs, no overbooking. Browse the gallery, book a time, and let's make magic.
+        </p>
+        <a href="pages/book.html" class="btn btn-primary">Book with me</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  <section class="section">
+    <div class="container">
+      <div class="testimonials">
+        <h2>What clients say</h2>
+        <div class="testimonial-grid">
+          <div class="testimonial">
+            <p>"My knotless braids lasted nine weeks and my edges thanked me. Booking online was effortless."</p>
+            <div class="who">— Amara K.</div>
+          </div>
+          <div class="testimonial">
+            <p>"Fobs is so gentle with my daughter's hair. We've found our forever braider."</p>
+            <div class="who">— Janelle T.</div>
+          </div>
+          <div class="testimonial">
+            <p>"The boho knotless install was unreal. I get compliments daily."</p>
+            <div class="who">— Sade R.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="section">
+    <div class="container">
+      <div class="cta-banner">
+        <h2>Ready for your next style?</h2>
+        <p>Pick a date, lock it in with a deposit, and show up to be pampered.</p>
+        <a href="pages/book.html" class="btn btn-accent">Book your appointment</a>
+      </div>
+    </div>
+  </section>
+
+  <div id="footer-slot"></div>
+
+  <script type="module">
+    import { injectNav, injectFooter, styleImgSrc, escapeHtml } from "./scripts/common.js";
+    import { getFeaturedStyles } from "./scripts/styles-data.js";
+    import { fmtMoney, fmtDuration } from "./scripts/firebase-config.js";
+
+    injectNav("home");
+    injectFooter();
+
+    (async () => {
+      const grid = document.getElementById("featured-grid");
+      try {
+        const featured = await getFeaturedStyles(3);
+        grid.innerHTML = featured.map(s => `
+          <a class="style-card" href="pages/style.html?id=${encodeURIComponent(s.id)}">
+            <div class="thumb">
+              <div class="placeholder">${escapeHtml(s.name)}</div>
+              ${s.image ? `<img src="${styleImgSrc(s.image)}" alt="${escapeHtml(s.name)}" onerror="this.remove()">` : ""}
+            </div>
+            <div class="body">
+              <h3>${escapeHtml(s.name)}</h3>
+              <p style="margin:0">${escapeHtml(s.shortDesc || "")}</p>
+              <div class="meta">
+                <span class="duration">${fmtDuration(s.durationMin)}</span>
+                <span class="price">${fmtMoney(s.priceCents)}</span>
+              </div>
+            </div>
+          </a>
+        `).join("");
+      } catch (err) {
+        grid.innerHTML = `<div class="empty-state"><h3>Couldn't load styles</h3><p>${escapeHtml(err.message)}</p></div>`;
+      }
+    })();
+  </script>
+</body>
+</html>
