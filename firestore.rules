@@ -32,6 +32,12 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // ---- site content (homepage copy, hero image, contact info) ----
+    match /site/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
     // ---- bookings ----
     // A booking can be created by anyone (guest checkout supported), but the
     // creator must store their own uid (or null) and cannot pre-confirm status.

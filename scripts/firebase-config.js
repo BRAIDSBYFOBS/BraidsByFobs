@@ -20,6 +20,9 @@ import {
   setDoc, updateDoc, deleteDoc, query, where, orderBy, limit,
   serverTimestamp, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 // ---- YOUR CONFIG GOES HERE ---------------------------------
 export const firebaseConfig = {
@@ -53,14 +56,38 @@ export const isPlaceholderConfig =
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const storage = getStorage(app);
 
 export {
   onAuthStateChanged, signInWithEmailAndPassword,
   createUserWithEmailAndPassword, signOut, GoogleAuthProvider,
   signInWithPopup, updateProfile,
   collection, doc, getDoc, getDocs, addDoc, setDoc, updateDoc,
-  deleteDoc, query, where, orderBy, limit, serverTimestamp, onSnapshot
+  deleteDoc, query, where, orderBy, limit, serverTimestamp, onSnapshot,
+  storageRef, uploadBytes, getDownloadURL, deleteObject
 };
+
+// Upload a File/Blob to Firebase Storage and return its public download URL.
+// `folder` is a path under /uploads (e.g. "styles", "site"). The filename is
+// randomized so re-uploads never clobber each other.
+export async function uploadImage(file, folder = "misc") {
+  if (!file) throw new Error("No file selected");
+  if (!file.type || !file.type.startsWith("image/")) {
+    throw new Error("Please choose an image file");
+  }
+  const MAX_BYTES = 10 * 1024 * 1024;
+  if (file.size > MAX_BYTES) {
+    throw new Error("Image is larger than 10 MB");
+  }
+  const safeFolder = String(folder).replace(/[^a-z0-9_-]/gi, "") || "misc";
+  const ext = (file.name.split(".").pop() || "jpg")
+    .toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const path = `uploads/${safeFolder}/${id}.${ext}`;
+  const r = storageRef(storage, path);
+  await uploadBytes(r, file, { contentType: file.type });
+  return await getDownloadURL(r);
+}
 
 // Convenience: is current user admin?
 export function isAdmin(user) {

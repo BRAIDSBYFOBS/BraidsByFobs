@@ -8,6 +8,32 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../styles/main.css" />
+  <style>
+    .upload-row {
+      display: flex; gap: 12px; align-items: center; margin-bottom: 12px;
+    }
+    .upload-thumb {
+      width: 72px; height: 72px; border-radius: 8px; background: #f0e8dd;
+      border: 1px solid var(--color-border); object-fit: cover;
+      display: block; flex-shrink: 0;
+    }
+    .upload-status { font-size: 0.85rem; color: var(--color-muted); }
+    .site-section {
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius-md); padding: 22px; margin-bottom: 18px;
+    }
+    .site-section h3 { margin-bottom: 14px; font-size: 1.1rem; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .testimonial-row {
+      background: #faf6f1; border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm); padding: 12px; margin-bottom: 10px;
+    }
+    .testimonial-row .field { margin-bottom: 8px; }
+    .small-btn {
+      padding: 6px 12px; font-size: 0.82rem;
+    }
+    @media (max-width: 700px) { .row-2 { grid-template-columns: 1fr; } }
+  </style>
 </head>
 <body>
   <div id="nav-slot"></div>
@@ -21,6 +47,7 @@
         <button data-tab="bookings" class="active">Bookings</button>
         <button data-tab="styles">Styles</button>
         <button data-tab="availability">Availability</button>
+        <button data-tab="site">Site</button>
       </div>
 
       <div id="tab-content">
@@ -29,18 +56,21 @@
     </div>
   </section>
 
-  <!-- Edit-style modal -->
   <div id="modal-root"></div>
 
   <div id="footer-slot"></div>
 
   <script type="module">
-    import { injectNav, injectFooter, requireAdmin, escapeHtml } from "../scripts/common.js";
+    import { injectNav, injectFooter, requireAdmin, escapeHtml, styleImgSrc } from "../scripts/common.js";
     import {
       db, collection, getDocs, addDoc, doc, getDoc, setDoc, updateDoc, deleteDoc,
-      query, orderBy, fmtMoney, fmtDate, fmtTime, fmtDuration, serverTimestamp
+      query, orderBy, fmtMoney, fmtDate, fmtTime, fmtDuration, serverTimestamp,
+      uploadImage
     } from "../scripts/firebase-config.js";
     import { getAllStyles, invalidateStyleCache } from "../scripts/styles-data.js";
+    import {
+      DEFAULT_CONTENT, getSiteContent, invalidateSiteContentCache
+    } from "../scripts/site-content.js";
 
     injectNav("admin");
     injectFooter();
@@ -61,6 +91,7 @@
       if (tab === "bookings") return renderBookings();
       if (tab === "styles") return renderStyles();
       if (tab === "availability") return renderAvailability();
+      if (tab === "site") return renderSite();
     }
     renderTab("bookings");
 
@@ -143,11 +174,16 @@
           <div class="table-card">
             <table class="data">
               <thead>
-                <tr><th>Name</th><th>Category</th><th>Price</th><th>Duration</th><th>Active</th><th></th></tr>
+                <tr><th>Photo</th><th>Name</th><th>Category</th><th>Price</th><th>Duration</th><th>Active</th><th></th></tr>
               </thead>
               <tbody>
                 ${styles.map(s => `
                   <tr data-id="${escapeHtml(s.id)}">
+                    <td>
+                      ${s.image
+                        ? `<img src="${styleImgSrc(s.image)}" alt="" style="width:48px;height:48px;border-radius:8px;object-fit:cover" onerror="this.style.display='none'">`
+                        : `<div style="width:48px;height:48px;border-radius:8px;background:#f0e8dd"></div>`}
+                    </td>
                     <td><strong>${escapeHtml(s.name)}</strong><br/>
                       <span style="color:var(--color-muted);font-size:0.85rem">${escapeHtml(s.shortDesc || "")}</span>
                     </td>
@@ -156,7 +192,7 @@
                     <td>${fmtDuration(s.durationMin || 0)}</td>
                     <td>${s.active === false ? `<span class="badge badge-cancelled">no</span>` : `<span class="badge badge-confirmed">yes</span>`}</td>
                     <td>
-                      <button class="btn btn-ghost" data-action="edit" style="padding:6px 12px;font-size:0.85rem">Edit</button>
+                      <button class="btn btn-ghost small-btn" data-action="edit">Edit</button>
                     </td>
                   </tr>
                 `).join("")}
@@ -198,12 +234,28 @@
             <form id="style-form">
               <div class="field"><label>Name</label><input name="name" value="${escapeHtml(existing.name)}" required></div>
               <div class="field"><label>Category</label><input name="category" value="${escapeHtml(existing.category || "")}"></div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div class="row-2">
                 <div class="field"><label>Price (USD)</label><input name="price" type="number" step="0.01" min="0" value="${(existing.priceCents/100).toFixed(2)}" required></div>
                 <div class="field"><label>Deposit (USD)</label><input name="deposit" type="number" step="0.01" min="0" value="${((existing.depositCents||0)/100).toFixed(2)}"></div>
               </div>
               <div class="field"><label>Duration (minutes)</label><input name="duration" type="number" min="15" step="15" value="${existing.durationMin}" required></div>
-              <div class="field"><label>Image filename (in /images/styles/)</label><input name="image" value="${escapeHtml(existing.image || "")}" placeholder="e.g. knotless-medium.jpg"></div>
+
+              <div class="field">
+                <label>Photo</label>
+                <div class="upload-row">
+                  <img class="upload-thumb" id="style-thumb" alt=""
+                       src="${existing.image ? styleImgSrc(existing.image) : ''}"
+                       style="${existing.image ? '' : 'display:none'}"
+                       onerror="this.style.display='none'">
+                  <div style="flex:1">
+                    <input type="file" accept="image/*" id="style-photo-input" style="font-size:0.9rem">
+                    <div class="upload-status" id="style-photo-status">JPG/PNG, up to 10 MB. Replaces the current image.</div>
+                  </div>
+                </div>
+                <input name="image" id="style-image-url" value="${escapeHtml(existing.image || "")}"
+                  placeholder="Image URL or filename in /images/styles/" style="font-size:0.85rem">
+              </div>
+
               <div class="field"><label>Short description</label><input name="shortDesc" value="${escapeHtml(existing.shortDesc || "")}"></div>
               <div class="field"><label>Full description</label><textarea name="description">${escapeHtml(existing.description || "")}</textarea></div>
               <div style="display:flex;gap:18px;margin-bottom:12px">
@@ -214,7 +266,7 @@
                 ${id ? `<button type="button" class="btn btn-ghost" id="delete-btn" style="color:var(--color-danger);border-color:var(--color-danger)">Delete</button>` : `<div></div>`}
                 <div style="display:flex;gap:8px">
                   <button type="button" class="btn btn-ghost" id="cancel-btn">Cancel</button>
-                  <button type="submit" class="btn btn-primary">Save</button>
+                  <button type="submit" class="btn btn-primary" id="save-btn">Save</button>
                 </div>
               </div>
             </form>
@@ -223,6 +275,39 @@
       `;
       const close = () => { modal.innerHTML = ""; };
       document.getElementById("cancel-btn").addEventListener("click", close);
+
+      const imageInput = document.getElementById("style-image-url");
+      const photoInput = document.getElementById("style-photo-input");
+      const thumb = document.getElementById("style-thumb");
+      const photoStatus = document.getElementById("style-photo-status");
+      const saveBtn = document.getElementById("save-btn");
+
+      function refreshThumb() {
+        const v = imageInput.value.trim();
+        if (!v) { thumb.style.display = "none"; return; }
+        thumb.src = /^https?:/.test(v) ? v : styleImgSrc(v);
+        thumb.style.display = "block";
+      }
+      imageInput.addEventListener("input", refreshThumb);
+
+      photoInput.addEventListener("change", async () => {
+        const file = photoInput.files?.[0];
+        if (!file) return;
+        photoStatus.textContent = "Uploading…";
+        saveBtn.disabled = true;
+        try {
+          const url = await uploadImage(file, "styles");
+          imageInput.value = url;
+          refreshThumb();
+          photoStatus.textContent = "Uploaded.";
+        } catch (err) {
+          photoStatus.textContent = `Upload failed: ${err.message}`;
+        } finally {
+          saveBtn.disabled = false;
+          photoInput.value = "";
+        }
+      });
+
       const form = document.getElementById("style-form");
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
@@ -281,7 +366,7 @@
               <input type="checkbox" id="closed" name="closed">
               <label for="closed" style="margin:0">Closed all day</label>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" id="hours-fields">
+            <div class="row-2" id="hours-fields">
               <div class="field"><label>Open (24h)</label><input name="open" type="number" min="0" max="23" value="9"></div>
               <div class="field"><label>Close (24h)</label><input name="close" type="number" min="1" max="23" value="18"></div>
             </div>
@@ -309,6 +394,269 @@
           document.getElementById("avail-alert").innerHTML = `<div class="alert alert-error">${escapeHtml(err.message)}</div>`;
         }
       });
+    }
+
+    // ---------- SITE CONTENT ----------
+    async function renderSite() {
+      tabContent.innerHTML = `<div class="center-spinner"><div class="spinner"></div></div>`;
+      const content = await getSiteContent();
+
+      tabContent.innerHTML = `
+        <p style="margin:0 0 16px">
+          Edit any text or image that appears on the homepage and footer.
+          Changes go live the next time visitors load the page.
+        </p>
+        <div id="site-alert"></div>
+
+        <form id="site-form">
+          <div class="site-section">
+            <h3>Brand</h3>
+            <div class="row-2">
+              <div class="field"><label>Business name</label><input name="brandName" value="${escapeHtml(content.brandName)}"></div>
+              <div class="field"><label>Tagline (after name)</label><input name="brandTagline" value="${escapeHtml(content.brandTagline)}"></div>
+            </div>
+          </div>
+
+          <div class="site-section">
+            <h3>Hero</h3>
+            <div class="field"><label>Eyebrow text</label><input name="hero.eyebrow" value="${escapeHtml(content.hero.eyebrow)}"></div>
+            <div class="field"><label>Headline (use a blank line for line break)</label><textarea name="hero.headline">${escapeHtml(content.hero.headline)}</textarea></div>
+            <div class="field"><label>Lead paragraph</label><textarea name="hero.lead">${escapeHtml(content.hero.lead)}</textarea></div>
+            <div class="row-2">
+              <div class="field"><label>Primary button label</label><input name="hero.primaryCtaLabel" value="${escapeHtml(content.hero.primaryCtaLabel)}"></div>
+              <div class="field"><label>Secondary button label</label><input name="hero.secondaryCtaLabel" value="${escapeHtml(content.hero.secondaryCtaLabel)}"></div>
+            </div>
+            <div class="field">
+              <label>Hero image</label>
+              ${imageUploadHtml("hero", content.hero.imageUrl)}
+            </div>
+          </div>
+
+          <div class="site-section">
+            <h3>How it works (3 cards)</h3>
+            ${content.features.map((f, i) => `
+              <div class="row-2" style="margin-bottom:8px">
+                <div class="field"><label>Card ${i+1} title</label><input name="features.${i}.title" value="${escapeHtml(f.title || "")}"></div>
+                <div class="field"><label>Card ${i+1} body</label><input name="features.${i}.body" value="${escapeHtml(f.body || "")}"></div>
+              </div>
+            `).join("")}
+          </div>
+
+          <div class="site-section">
+            <h3>Featured styles section</h3>
+            <div class="row-2">
+              <div class="field"><label>Eyebrow</label><input name="featured.eyebrow" value="${escapeHtml(content.featured.eyebrow)}"></div>
+              <div class="field"><label>Heading</label><input name="featured.heading" value="${escapeHtml(content.featured.heading)}"></div>
+            </div>
+            <div class="field"><label>Body</label><input name="featured.body" value="${escapeHtml(content.featured.body)}"></div>
+            <p style="font-size:0.85rem;color:var(--color-muted);margin:0">
+              The cards under this heading come from the <strong>Styles</strong> tab — mark a style "Featured on home" to include it.
+            </p>
+          </div>
+
+          <div class="site-section">
+            <h3>About</h3>
+            <div class="row-2">
+              <div class="field"><label>Eyebrow</label><input name="about.eyebrow" value="${escapeHtml(content.about.eyebrow)}"></div>
+              <div class="field"><label>Heading</label><input name="about.heading" value="${escapeHtml(content.about.heading)}"></div>
+            </div>
+            <div class="field"><label>Body (separate paragraphs with a blank line)</label>
+              <textarea name="about.body" style="min-height:140px">${escapeHtml(content.about.body)}</textarea>
+            </div>
+            <div class="field"><label>Button label</label><input name="about.ctaLabel" value="${escapeHtml(content.about.ctaLabel)}"></div>
+            <div class="field">
+              <label>About photo</label>
+              ${imageUploadHtml("about", content.about.imageUrl)}
+            </div>
+          </div>
+
+          <div class="site-section">
+            <h3>Testimonials</h3>
+            <div class="field"><label>Heading</label><input name="testimonials.heading" value="${escapeHtml(content.testimonials.heading)}"></div>
+            <div id="testimonials-list">
+              ${content.testimonials.items.map((t, i) => testimonialRowHtml(t, i)).join("")}
+            </div>
+            <button type="button" class="btn btn-ghost small-btn" id="add-testimonial">+ Add testimonial</button>
+          </div>
+
+          <div class="site-section">
+            <h3>CTA banner (bottom of homepage)</h3>
+            <div class="field"><label>Heading</label><input name="cta.heading" value="${escapeHtml(content.cta.heading)}"></div>
+            <div class="field"><label>Body</label><input name="cta.body" value="${escapeHtml(content.cta.body)}"></div>
+            <div class="field"><label>Button label</label><input name="cta.ctaLabel" value="${escapeHtml(content.cta.ctaLabel)}"></div>
+          </div>
+
+          <div class="site-section">
+            <h3>Contact &amp; footer</h3>
+            <div class="row-2">
+              <div class="field"><label>Email</label><input name="contact.email" type="email" value="${escapeHtml(content.contact.email)}"></div>
+              <div class="field"><label>Phone</label><input name="contact.phone" value="${escapeHtml(content.contact.phone)}"></div>
+            </div>
+            <div class="field"><label>Instagram URL</label><input name="contact.instagram" value="${escapeHtml(content.contact.instagram)}"></div>
+            <div class="field"><label>Footer blurb</label><textarea name="contact.footerBlurb">${escapeHtml(content.contact.footerBlurb)}</textarea></div>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:8px">
+            <button type="button" class="btn btn-ghost" id="reset-defaults" title="Restore the original copy">Reset to defaults</button>
+            <button type="submit" class="btn btn-primary" id="save-site">Save changes</button>
+          </div>
+        </form>
+      `;
+
+      bindImageUpload("hero", "site");
+      bindImageUpload("about", "site");
+      bindTestimonials();
+
+      document.getElementById("add-testimonial").addEventListener("click", () => {
+        const list = document.getElementById("testimonials-list");
+        const i = list.children.length;
+        list.insertAdjacentHTML("beforeend", testimonialRowHtml({ text: "", who: "" }, i));
+        bindTestimonialDeletes();
+      });
+
+      document.getElementById("reset-defaults").addEventListener("click", async () => {
+        if (!confirm("Reset all homepage copy back to the original defaults? This deletes your customizations.")) return;
+        try {
+          await deleteDoc(doc(db, "site", "content"));
+          invalidateSiteContentCache();
+          renderSite();
+        } catch (err) {
+          showSiteAlert(err.message, "error");
+        }
+      });
+
+      document.getElementById("site-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const form = e.currentTarget;
+        const payload = collectSiteForm(form);
+        try {
+          await setDoc(doc(db, "site", "content"), { ...payload, updatedAt: serverTimestamp() });
+          invalidateSiteContentCache();
+          showSiteAlert("Saved. Reload the homepage to see your changes.", "success");
+        } catch (err) {
+          showSiteAlert(err.message, "error");
+        }
+      });
+    }
+
+    function showSiteAlert(msg, type = "error") {
+      const el = document.getElementById("site-alert");
+      if (el) el.innerHTML = `<div class="alert alert-${type}">${escapeHtml(msg)}</div>`;
+    }
+
+    function imageUploadHtml(key, currentUrl) {
+      return `
+        <div class="upload-row">
+          <img class="upload-thumb" id="${key}-thumb"
+               src="${currentUrl ? escapeHtml(currentUrl) : ''}"
+               style="${currentUrl ? '' : 'display:none'}"
+               onerror="this.style.display='none'" alt="">
+          <div style="flex:1">
+            <input type="file" accept="image/*" id="${key}-file" style="font-size:0.9rem">
+            <div class="upload-status" id="${key}-status">JPG/PNG, up to 10 MB.</div>
+          </div>
+          ${currentUrl ? `<button type="button" class="btn btn-ghost small-btn" id="${key}-clear">Remove</button>` : ""}
+        </div>
+        <input type="hidden" name="${key === 'hero' ? 'hero.imageUrl' : 'about.imageUrl'}"
+               id="${key}-url" value="${escapeHtml(currentUrl || "")}">
+      `;
+    }
+
+    function bindImageUpload(key, folder) {
+      const fileEl = document.getElementById(`${key}-file`);
+      const urlEl = document.getElementById(`${key}-url`);
+      const thumb = document.getElementById(`${key}-thumb`);
+      const status = document.getElementById(`${key}-status`);
+      const clearBtn = document.getElementById(`${key}-clear`);
+      const saveBtn = document.getElementById("save-site");
+
+      if (clearBtn) {
+        clearBtn.addEventListener("click", () => {
+          urlEl.value = "";
+          thumb.style.display = "none";
+          clearBtn.remove();
+          status.textContent = "Image cleared. Save to apply.";
+        });
+      }
+
+      fileEl.addEventListener("change", async () => {
+        const file = fileEl.files?.[0];
+        if (!file) return;
+        status.textContent = "Uploading…";
+        if (saveBtn) saveBtn.disabled = true;
+        try {
+          const url = await uploadImage(file, folder);
+          urlEl.value = url;
+          thumb.src = url;
+          thumb.style.display = "block";
+          status.textContent = "Uploaded. Save to apply.";
+        } catch (err) {
+          status.textContent = `Upload failed: ${err.message}`;
+        } finally {
+          if (saveBtn) saveBtn.disabled = false;
+          fileEl.value = "";
+        }
+      });
+    }
+
+    function testimonialRowHtml(t, i) {
+      return `
+        <div class="testimonial-row" data-row="${i}">
+          <div class="row-2">
+            <div class="field"><label>Quote</label><input name="testimonials.items.${i}.text" value="${escapeHtml(t.text || "")}"></div>
+            <div class="field"><label>Author</label><input name="testimonials.items.${i}.who" value="${escapeHtml(t.who || "")}"></div>
+          </div>
+          <div style="text-align:right">
+            <button type="button" class="btn btn-ghost small-btn delete-testimonial" style="color:var(--color-danger);border-color:var(--color-danger)">Remove</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function bindTestimonials() { bindTestimonialDeletes(); }
+    function bindTestimonialDeletes() {
+      document.querySelectorAll(".delete-testimonial").forEach(btn => {
+        btn.onclick = () => {
+          btn.closest(".testimonial-row").remove();
+        };
+      });
+    }
+
+    // Walk every form field with a dotted name like "hero.headline" or
+    // "features.0.title" and rebuild a nested object suitable for Firestore.
+    function collectSiteForm(form) {
+      const out = JSON.parse(JSON.stringify(DEFAULT_CONTENT));
+      out.features = [];
+      out.testimonials = { ...DEFAULT_CONTENT.testimonials, items: [] };
+
+      for (const el of form.elements) {
+        if (!el.name) continue;
+        const path = el.name.split(".");
+        const value = el.type === "checkbox" ? el.checked : el.value;
+        setPath(out, path, value);
+      }
+      out.features = compact(out.features);
+      out.testimonials.items = compact(out.testimonials.items).filter(t => (t.text || "").trim());
+      return out;
+    }
+
+    function setPath(obj, path, value) {
+      let cur = obj;
+      for (let i = 0; i < path.length - 1; i++) {
+        const key = path[i];
+        const nextIsIndex = /^\d+$/.test(path[i + 1]);
+        if (cur[key] == null || typeof cur[key] !== "object") {
+          cur[key] = nextIsIndex ? [] : {};
+        }
+        cur = cur[key];
+      }
+      const leaf = path[path.length - 1];
+      cur[leaf] = typeof value === "string" ? value.trim() : value;
+    }
+
+    function compact(arr) {
+      if (!Array.isArray(arr)) return [];
+      return arr.filter(Boolean);
     }
   </script>
 </body>

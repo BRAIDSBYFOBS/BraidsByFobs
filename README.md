@@ -105,8 +105,12 @@ Without Firebase configured, the site will:
 
 8. Deploy rules & indexes:
    ```powershell
-   firebase deploy --only firestore:rules,firestore:indexes
+   firebase deploy --only firestore:rules,firestore:indexes,storage
    ```
+
+   > The first time you deploy `storage`, Firebase will ask you to enable
+   > Cloud Storage on the project if it isn't already. Click through the
+   > prompt; the rules in `storage.rules` will then be applied.
 
 9. **Seed your styles.** Sign up on your live site with your admin email, then visit
    `pages/seed.html` and click **Run seed**. This copies `data/seed-styles.json` into
@@ -253,11 +257,14 @@ users/{uid}
 | Task                                | Where                                           |
 |-------------------------------------|--------------------------------------------------|
 | Add / edit a hairstyle              | `pages/admin.html` → Styles → Edit               |
+| Upload a hairstyle photo            | `pages/admin.html` → Styles → Edit → "Photo"     |
+| Edit homepage copy (hero, about, testimonials, CTA, contact) | `pages/admin.html` → Site |
+| Upload a hero or about photo        | `pages/admin.html` → Site                        |
 | Mark a date closed                  | `pages/admin.html` → Availability                |
 | Confirm or cancel a booking         | `pages/admin.html` → Bookings → status dropdown  |
 | Change business hours               | `DEFAULT_HOURS` in `scripts/booking.js`          |
 | Change brand colors / fonts         | CSS variables at the top of `styles/main.css`    |
-| Add a new admin                     | `ADMIN_EMAILS` in `scripts/firebase-config.js` **and** `isAdmin()` in `firestore.rules` |
+| Add a new admin                     | `ADMIN_EMAILS` in `scripts/firebase-config.js` **and** `isAdmin()` in `firestore.rules` **and** `isAdmin()` in `storage.rules` |
 
 ---
 

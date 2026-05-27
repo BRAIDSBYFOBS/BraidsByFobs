@@ -17,19 +17,19 @@
   <header class="hero">
     <div class="container hero-grid">
       <div>
-        <span class="hero-eyebrow">Protective styles, expertly braided</span>
-        <h1>Beautiful braids,<br/>booked in minutes.</h1>
-        <p class="lead">
+        <span class="hero-eyebrow" id="hero-eyebrow">Protective styles, expertly braided</span>
+        <h1 id="hero-headline">Beautiful braids,<br/>booked in minutes.</h1>
+        <p class="lead" id="hero-lead">
           Browse our gallery of knotless braids, twists, locs, and cornrows.
           Pick a style, choose a time, and we'll handle the rest &mdash; all online.
         </p>
         <div class="hero-cta">
-          <a href="pages/styles.html" class="btn btn-primary">Browse styles</a>
-          <a href="pages/book.html" class="btn btn-ghost">Book an appointment</a>
+          <a href="pages/styles.html" class="btn btn-primary" id="hero-cta-primary">Browse styles</a>
+          <a href="pages/book.html" class="btn btn-ghost" id="hero-cta-secondary">Book an appointment</a>
         </div>
       </div>
       <div class="hero-image">
-        <div class="placeholder">Add hero image at<br/>images/hero.jpg</div>
+        <div class="placeholder" id="hero-placeholder">Add a hero image from<br/>Admin → Site</div>
         <img id="hero-img" alt="" onerror="this.remove()" src="images/hero.jpg" />
       </div>
     </div>
@@ -38,7 +38,7 @@
   <!-- Features strip -->
   <section class="section" style="padding-top:32px">
     <div class="container">
-      <div class="feature-row">
+      <div class="feature-row" id="features-row">
         <div class="feature">
           <div class="icon">1</div>
           <h3>Pick a style</h3>
@@ -62,9 +62,9 @@
   <section class="section" id="featured">
     <div class="container">
       <div class="section-head">
-        <span class="eyebrow">Most loved</span>
-        <h2>Featured styles</h2>
-        <p>A few favorites — see the full gallery for everything we offer.</p>
+        <span class="eyebrow" id="featured-eyebrow">Most loved</span>
+        <h2 id="featured-heading">Featured styles</h2>
+        <p id="featured-body">A few favorites — see the full gallery for everything we offer.</p>
       </div>
       <div class="style-grid" id="featured-grid">
         <div class="style-card"><div class="thumb skeleton"></div><div class="body"><div class="skeleton" style="height:16px;width:60%;margin-bottom:8px"></div><div class="skeleton" style="height:12px;width:80%"></div></div></div>
@@ -80,20 +80,22 @@
   <!-- About -->
   <section class="section" id="about">
     <div class="container about-grid">
-      <div class="about-image"></div>
+      <div class="about-image" id="about-image"></div>
       <div>
-        <span class="hero-eyebrow">About</span>
-        <h2>Hi, I'm Fobs.</h2>
-        <p>
-          I've been braiding hair for over a decade, specializing in knotless braids and
-          scalp-friendly protective styles. Every appointment is one-on-one and tailored to
-          your hair, lifestyle, and the look you're going for.
-        </p>
-        <p>
-          Sessions are by appointment only so I can give you my full attention &mdash; no rushed
-          chairs, no overbooking. Browse the gallery, book a time, and let's make magic.
-        </p>
-        <a href="pages/book.html" class="btn btn-primary">Book with me</a>
+        <span class="hero-eyebrow" id="about-eyebrow">About</span>
+        <h2 id="about-heading">Hi, I'm Fobs.</h2>
+        <div id="about-body">
+          <p>
+            I've been braiding hair for over a decade, specializing in knotless braids and
+            scalp-friendly protective styles. Every appointment is one-on-one and tailored to
+            your hair, lifestyle, and the look you're going for.
+          </p>
+          <p>
+            Sessions are by appointment only so I can give you my full attention &mdash; no rushed
+            chairs, no overbooking. Browse the gallery, book a time, and let's make magic.
+          </p>
+        </div>
+        <a href="pages/book.html" class="btn btn-primary" id="about-cta">Book with me</a>
       </div>
     </div>
   </section>
@@ -102,8 +104,8 @@
   <section class="section">
     <div class="container">
       <div class="testimonials">
-        <h2>What clients say</h2>
-        <div class="testimonial-grid">
+        <h2 id="testimonials-heading">What clients say</h2>
+        <div class="testimonial-grid" id="testimonial-grid">
           <div class="testimonial">
             <p>"My knotless braids lasted nine weeks and my edges thanked me. Booking online was effortless."</p>
             <div class="who">— Amara K.</div>
@@ -125,9 +127,9 @@
   <section class="section">
     <div class="container">
       <div class="cta-banner">
-        <h2>Ready for your next style?</h2>
-        <p>Pick a date, lock it in with a deposit, and show up to be pampered.</p>
-        <a href="pages/book.html" class="btn btn-accent">Book your appointment</a>
+        <h2 id="cta-heading">Ready for your next style?</h2>
+        <p id="cta-body">Pick a date, lock it in with a deposit, and show up to be pampered.</p>
+        <a href="pages/book.html" class="btn btn-accent" id="cta-button">Book your appointment</a>
       </div>
     </div>
   </section>
@@ -138,9 +140,83 @@
     import { injectNav, injectFooter, styleImgSrc, escapeHtml } from "./scripts/common.js";
     import { getFeaturedStyles } from "./scripts/styles-data.js";
     import { fmtMoney, fmtDuration } from "./scripts/firebase-config.js";
+    import { getSiteContent } from "./scripts/site-content.js";
 
     injectNav("home");
     injectFooter();
+
+    function setText(id, value) {
+      const el = document.getElementById(id);
+      if (el && value != null) el.textContent = value;
+    }
+    function setHtml(id, value) {
+      const el = document.getElementById(id);
+      if (el && value != null) el.innerHTML = value;
+    }
+    function paragraphsHtml(text) {
+      return String(text || "")
+        .split(/\n\s*\n/)
+        .map(p => `<p>${escapeHtml(p.trim()).replace(/\n/g, "<br/>")}</p>`)
+        .join("");
+    }
+
+    (async () => {
+      const content = await getSiteContent();
+
+      setText("hero-eyebrow", content.hero.eyebrow);
+      setHtml("hero-headline", escapeHtml(content.hero.headline).replace(/\n/g, "<br/>"));
+      setText("hero-lead", content.hero.lead);
+      setText("hero-cta-primary", content.hero.primaryCtaLabel);
+      setText("hero-cta-secondary", content.hero.secondaryCtaLabel);
+
+      const heroImg = document.getElementById("hero-img");
+      const heroPlaceholder = document.getElementById("hero-placeholder");
+      if (content.hero.imageUrl) {
+        heroImg.src = content.hero.imageUrl;
+        if (heroPlaceholder) heroPlaceholder.style.display = "none";
+      }
+
+      const featuresEl = document.getElementById("features-row");
+      if (Array.isArray(content.features) && content.features.length) {
+        featuresEl.innerHTML = content.features.map((f, i) => `
+          <div class="feature">
+            <div class="icon">${i + 1}</div>
+            <h3>${escapeHtml(f.title || "")}</h3>
+            <p>${escapeHtml(f.body || "")}</p>
+          </div>
+        `).join("");
+      }
+
+      setText("featured-eyebrow", content.featured.eyebrow);
+      setText("featured-heading", content.featured.heading);
+      setText("featured-body", content.featured.body);
+
+      setText("about-eyebrow", content.about.eyebrow);
+      setText("about-heading", content.about.heading);
+      setHtml("about-body", paragraphsHtml(content.about.body));
+      setText("about-cta", content.about.ctaLabel);
+      if (content.about.imageUrl) {
+        const aboutImg = document.getElementById("about-image");
+        aboutImg.style.backgroundImage = `url("${content.about.imageUrl}")`;
+        aboutImg.style.backgroundSize = "cover";
+        aboutImg.style.backgroundPosition = "center";
+      }
+
+      setText("testimonials-heading", content.testimonials.heading);
+      if (Array.isArray(content.testimonials.items)) {
+        document.getElementById("testimonial-grid").innerHTML =
+          content.testimonials.items.map(t => `
+            <div class="testimonial">
+              <p>"${escapeHtml(t.text || "")}"</p>
+              <div class="who">— ${escapeHtml(t.who || "")}</div>
+            </div>
+          `).join("");
+      }
+
+      setText("cta-heading", content.cta.heading);
+      setText("cta-body", content.cta.body);
+      setText("cta-button", content.cta.ctaLabel);
+    })();
 
     (async () => {
       const grid = document.getElementById("featured-grid");

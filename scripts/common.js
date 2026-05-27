@@ -1,6 +1,7 @@
 // Shared UI helpers: navbar auth state, mobile nav toggle, year stamp.
 
 import { auth, onAuthStateChanged, signOut, isAdmin } from "./firebase-config.js";
+import { getSiteContent } from "./site-content.js";
 
 export function injectNav(activeKey = "") {
   const navHTML = `
@@ -65,8 +66,8 @@ export function injectFooter() {
       <div class="container">
         <div class="footer-grid">
           <div>
-            <div class="brand" style="color:#fff; margin-bottom:10px">Braids <span>By Fobs</span></div>
-            <p style="color:#a8978a; max-width:340px">
+            <div class="brand" style="color:#fff; margin-bottom:10px" id="footer-brand">Braids <span>By Fobs</span></div>
+            <p style="color:#a8978a; max-width:340px" id="footer-blurb">
               Protective hairstyles crafted with care. Box braids, knotless,
               feed-ins, locs, twists &mdash; tailored to you.
             </p>
@@ -85,12 +86,12 @@ export function injectFooter() {
           </div>
           <div>
             <h4>Contact</h4>
-            <a href="mailto:hello@braidsbyfobs.com">hello@braidsbyfobs.com</a>
-            <a href="tel:+10000000000">(000) 000-0000</a>
-            <a href="https://instagram.com/" target="_blank" rel="noopener">Instagram</a>
+            <a id="footer-email" href="mailto:hello@braidsbyfobs.com">hello@braidsbyfobs.com</a>
+            <a id="footer-phone" href="tel:+10000000000">(000) 000-0000</a>
+            <a id="footer-instagram" href="https://instagram.com/" target="_blank" rel="noopener">Instagram</a>
           </div>
         </div>
-        <div class="copy">&copy; <span id="year"></span> Braids By Fobs. All rights reserved.</div>
+        <div class="copy">&copy; <span id="year"></span> <span id="footer-copy-brand">Braids By Fobs</span>. All rights reserved.</div>
       </div>
     </footer>
   `;
@@ -98,6 +99,34 @@ export function injectFooter() {
   if (slot) slot.innerHTML = footerHTML;
   const y = document.getElementById("year");
   if (y) y.textContent = new Date().getFullYear();
+
+  // Overlay editable content (contact info, blurb, brand name) when available.
+  getSiteContent().then((content) => {
+    const c = content.contact || {};
+    if (c.email) {
+      const a = document.getElementById("footer-email");
+      if (a) { a.href = `mailto:${c.email}`; a.textContent = c.email; }
+    }
+    if (c.phone) {
+      const a = document.getElementById("footer-phone");
+      if (a) {
+        a.href = `tel:${c.phone.replace(/[^0-9+]/g, "")}`;
+        a.textContent = c.phone;
+      }
+    }
+    if (c.instagram) {
+      const a = document.getElementById("footer-instagram");
+      if (a) a.href = c.instagram;
+    }
+    if (c.footerBlurb) {
+      const p = document.getElementById("footer-blurb");
+      if (p) p.textContent = c.footerBlurb;
+    }
+    if (content.brandName) {
+      const copy = document.getElementById("footer-copy-brand");
+      if (copy) copy.textContent = content.brandName;
+    }
+  }).catch(() => { /* keep defaults */ });
 }
 
 // Where is the site root from the current page?
