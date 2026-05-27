@@ -43,7 +43,8 @@ export const DEFAULT_CONTENT = {
   cta: {
     heading: "Ready for your next style?",
     body: "Pick a date, lock it in with a deposit, and show up to be pampered.",
-    ctaLabel: "Book your appointment"
+    ctaLabel: "Book your appointment",
+    imageUrl: ""
   },
   contact: {
     email: "hello@braidsbyfobs.com",

@@ -32,7 +32,89 @@
     .small-btn {
       padding: 6px 12px; font-size: 0.82rem;
     }
-    @media (max-width: 700px) { .row-2 { grid-template-columns: 1fr; } }
+
+    /* Stat cards (used by Inventory + Expenses) */
+    .stat-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px; margin-bottom: 20px;
+    }
+    .stat-card {
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius-md); padding: 16px 18px;
+    }
+    .stat-card.warn { background: #fdf3e3; border-color: #f0d9a8; }
+    .stat-label { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--color-muted); }
+    .stat-value { font-family: var(--font-display); font-size: 1.6rem; color: var(--color-text); margin-top: 4px; }
+    .stat-sub { display: block; font-size: 0.8rem; color: var(--color-muted); margin-top: 2px; }
+    .stat-delta { font-size: 0.78rem; font-weight: 600; margin-top: 4px; display: inline-block; }
+    .delta-up { color: var(--color-danger); }
+    .delta-down { color: var(--color-success); }
+    .delta-flat { color: var(--color-muted); }
+
+    /* Toolbar (search/filter row) */
+    .toolbar {
+      display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap;
+    }
+    .toolbar input[type="search"], .toolbar select {
+      padding: 9px 12px; border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm); font-family: inherit; font-size: 0.92rem;
+      background: #fff;
+    }
+    .toolbar input[type="search"] { min-width: 220px; }
+    .inline-check {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.9rem; color: var(--color-muted);
+    }
+
+    /* Inventory qty adjust */
+    .qty-adjust {
+      display: inline-flex; align-items: center; gap: 8px; justify-content: center;
+    }
+    .qty-btn {
+      width: 28px; height: 28px; border: 1px solid var(--color-border);
+      border-radius: 50%; background: #fff; cursor: pointer; font-weight: 700;
+      color: var(--color-primary);
+    }
+    .qty-btn:hover:not(:disabled) { background: var(--color-bg); }
+    .qty-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .qty-val { min-width: 28px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; }
+    .row-sub { color: var(--color-muted); font-size: 0.82rem; }
+
+    /* Expense panels & forecast */
+    .panel {
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius-md); padding: 20px; margin-bottom: 20px;
+    }
+    .panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .panel-head h3 { margin: 0; }
+    .chart-wrap { background: #faf6f1; border-radius: var(--radius-sm); padding: 10px; }
+    .forecast-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+      margin-top: 16px; padding: 14px; background: #faf6f1;
+      border-radius: var(--radius-sm);
+    }
+    .row-label { font-size: 0.78rem; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+    .row-value { font-family: var(--font-display); font-size: 1.2rem; color: var(--color-text); }
+    .muted-note { color: var(--color-muted); font-size: 0.85rem; margin: 10px 0 0; }
+    .cat-list { display: flex; flex-direction: column; gap: 10px; }
+    .cat-row-head { display: flex; justify-content: space-between; font-size: 0.92rem; margin-bottom: 4px; }
+    .cat-row-head .muted { color: var(--color-muted); }
+    .cat-bar { background: #ece4d8; height: 8px; border-radius: 4px; overflow: hidden; }
+    .cat-bar-fill { background: var(--color-accent); height: 100%; }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100; padding: 16px;
+    }
+    .modal-card { max-width: 560px; width: 100%; max-height: 90vh; overflow: auto; margin: 0; }
+
+    @media (max-width: 700px) {
+      .row-2 { grid-template-columns: 1fr; }
+      .forecast-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -47,6 +129,8 @@
         <button data-tab="bookings" class="active">Bookings</button>
         <button data-tab="styles">Styles</button>
         <button data-tab="availability">Availability</button>
+        <button data-tab="inventory">Inventory</button>
+        <button data-tab="expenses">Expenses</button>
         <button data-tab="site">Site</button>
       </div>
 
@@ -71,6 +155,8 @@
     import {
       DEFAULT_CONTENT, getSiteContent, invalidateSiteContentCache
     } from "../scripts/site-content.js";
+    import { renderInventory } from "../scripts/admin-inventory.js";
+    import { renderExpenses } from "../scripts/admin-expenses.js";
 
     injectNav("admin");
     injectFooter();
@@ -91,6 +177,8 @@
       if (tab === "bookings") return renderBookings();
       if (tab === "styles") return renderStyles();
       if (tab === "availability") return renderAvailability();
+      if (tab === "inventory") return renderInventory(tabContent);
+      if (tab === "expenses") return renderExpenses(tabContent);
       if (tab === "site") return renderSite();
     }
     renderTab("bookings");
@@ -484,6 +572,10 @@
             <div class="field"><label>Heading</label><input name="cta.heading" value="${escapeHtml(content.cta.heading)}"></div>
             <div class="field"><label>Body</label><input name="cta.body" value="${escapeHtml(content.cta.body)}"></div>
             <div class="field"><label>Button label</label><input name="cta.ctaLabel" value="${escapeHtml(content.cta.ctaLabel)}"></div>
+            <div class="field">
+              <label>Background image (optional — overrides the gradient)</label>
+              ${imageUploadHtml("cta", content.cta.imageUrl || "")}
+            </div>
           </div>
 
           <div class="site-section">
@@ -505,6 +597,7 @@
 
       bindImageUpload("hero", "site");
       bindImageUpload("about", "site");
+      bindImageUpload("cta", "site");
       bindTestimonials();
 
       document.getElementById("add-testimonial").addEventListener("click", () => {
@@ -545,6 +638,7 @@
     }
 
     function imageUploadHtml(key, currentUrl) {
+      const hiddenName = `${key}.imageUrl`;
       return `
         <div class="upload-row">
           <img class="upload-thumb" id="${key}-thumb"
@@ -557,7 +651,7 @@
           </div>
           ${currentUrl ? `<button type="button" class="btn btn-ghost small-btn" id="${key}-clear">Remove</button>` : ""}
         </div>
-        <input type="hidden" name="${key === 'hero' ? 'hero.imageUrl' : 'about.imageUrl'}"
+        <input type="hidden" name="${hiddenName}"
                id="${key}-url" value="${escapeHtml(currentUrl || "")}">
       `;
     }

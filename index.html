@@ -126,7 +126,7 @@
   <!-- CTA -->
   <section class="section">
     <div class="container">
-      <div class="cta-banner">
+      <div class="cta-banner" id="cta-banner">
         <h2 id="cta-heading">Ready for your next style?</h2>
         <p id="cta-body">Pick a date, lock it in with a deposit, and show up to be pampered.</p>
         <a href="pages/book.html" class="btn btn-accent" id="cta-button">Book your appointment</a>
@@ -216,6 +216,13 @@
       setText("cta-heading", content.cta.heading);
       setText("cta-body", content.cta.body);
       setText("cta-button", content.cta.ctaLabel);
+      if (content.cta.imageUrl) {
+        const banner = document.getElementById("cta-banner");
+        banner.style.backgroundImage =
+          `linear-gradient(135deg, rgba(200,155,91,0.55), rgba(92,58,33,0.65)), url("${content.cta.imageUrl}")`;
+        banner.style.backgroundSize = "cover";
+        banner.style.backgroundPosition = "center";
+      }
     })();
 
     (async () => {

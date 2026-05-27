@@ -248,6 +248,16 @@ availability/{YYYY-MM-DD}
 
 users/{uid}
   email, name, phone, createdAt
+
+site/content                      (singleton — edited from Admin → Site)
+  brandName, hero{}, features[], about{}, testimonials{ items[] },
+  cta{}, contact{}
+
+inventory/{auto-id}               (Admin → Inventory)
+  name, category, sku, qty, unitCostCents, reorderAt, supplier, notes
+
+expenses/{auto-id}                (Admin → Expenses)
+  date (Timestamp), category, vendor, amountCents, description, notes
 ```
 
 ---
@@ -259,7 +269,9 @@ users/{uid}
 | Add / edit a hairstyle              | `pages/admin.html` → Styles → Edit               |
 | Upload a hairstyle photo            | `pages/admin.html` → Styles → Edit → "Photo"     |
 | Edit homepage copy (hero, about, testimonials, CTA, contact) | `pages/admin.html` → Site |
-| Upload a hero or about photo        | `pages/admin.html` → Site                        |
+| Upload hero / about / CTA banner photos | `pages/admin.html` → Site                    |
+| Track supplies & low-stock alerts   | `pages/admin.html` → Inventory                   |
+| Log expenses & see monthly forecast | `pages/admin.html` → Expenses                    |
 | Mark a date closed                  | `pages/admin.html` → Availability                |
 | Confirm or cancel a booking         | `pages/admin.html` → Bookings → status dropdown  |
 | Change business hours               | `DEFAULT_HOURS` in `scripts/booking.js`          |
