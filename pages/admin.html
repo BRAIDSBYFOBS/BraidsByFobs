@@ -13,7 +13,7 @@
       display: flex; gap: 12px; align-items: center; margin-bottom: 12px;
     }
     .upload-thumb {
-      width: 72px; height: 72px; border-radius: 8px; background: #f0e8dd;
+      width: 72px; height: 72px; border-radius: 8px; background: #fce4ef;
       border: 1px solid var(--color-border); object-fit: cover;
       display: block; flex-shrink: 0;
     }
@@ -25,7 +25,7 @@
     .site-section h3 { margin-bottom: 14px; font-size: 1.1rem; }
     .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .testimonial-row {
-      background: #faf6f1; border: 1px solid var(--color-border);
+      background: #fdf2f8; border: 1px solid var(--color-border);
       border-radius: var(--radius-sm); padding: 12px; margin-bottom: 10px;
     }
     .testimonial-row .field { margin-bottom: 8px; }
@@ -51,7 +51,7 @@
       background: var(--color-surface); border: 1px solid var(--color-border);
       border-radius: var(--radius-md); padding: 16px 18px;
     }
-    .stat-card.warn { background: #fdf3e3; border-color: #f0d9a8; }
+    .stat-card.warn { background: #fce4ef; border-color: #f0c4dc; }
     .stat-label { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em;
       text-transform: uppercase; color: var(--color-muted); }
     .stat-value { font-family: var(--font-display); font-size: 1.6rem; color: var(--color-text); margin-top: 4px; }
@@ -97,10 +97,10 @@
     }
     .panel-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
     .panel-head h3 { margin: 0; }
-    .chart-wrap { background: #faf6f1; border-radius: var(--radius-sm); padding: 10px; }
+    .chart-wrap { background: #fdf2f8; border-radius: var(--radius-sm); padding: 10px; }
     .forecast-grid {
       display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
-      margin-top: 16px; padding: 14px; background: #faf6f1;
+      margin-top: 16px; padding: 14px; background: #fdf2f8;
       border-radius: var(--radius-sm);
     }
     .row-label { font-size: 0.78rem; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.06em; }
@@ -109,7 +109,7 @@
     .cat-list { display: flex; flex-direction: column; gap: 10px; }
     .cat-row-head { display: flex; justify-content: space-between; font-size: 0.92rem; margin-bottom: 4px; }
     .cat-row-head .muted { color: var(--color-muted); }
-    .cat-bar { background: #ece4d8; height: 8px; border-radius: 4px; overflow: hidden; }
+    .cat-bar { background: #f0dce8; height: 8px; border-radius: 4px; overflow: hidden; }
     .cat-bar-fill { background: var(--color-accent); height: 100%; }
 
     /* Modal */
@@ -279,7 +279,7 @@
                     <td>
                       ${s.image
                         ? `<img src="${styleImgSrc(s.image)}" alt="" style="width:48px;height:48px;border-radius:8px;object-fit:cover" onerror="this.style.display='none'">`
-                        : `<div style="width:48px;height:48px;border-radius:8px;background:#f0e8dd"></div>`}
+                        : `<div style="width:48px;height:48px;border-radius:8px;background:#fce4ef"></div>`}
                     </td>
                     <td><strong>${escapeHtml(s.name)}</strong><br/>
                       <span style="color:var(--color-muted);font-size:0.85rem">${escapeHtml(s.shortDesc || "")}</span>

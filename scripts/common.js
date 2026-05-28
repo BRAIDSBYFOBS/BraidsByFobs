@@ -67,7 +67,7 @@ export function injectFooter() {
         <div class="footer-grid">
           <div>
             <div class="brand" style="color:#fff; margin-bottom:10px" id="footer-brand">Braids <span>By Fobs</span></div>
-            <p style="color:#a8978a; max-width:340px" id="footer-blurb">
+            <p style="color:#c9a0bc; max-width:340px" id="footer-blurb">
               Protective hairstyles crafted with care. Box braids, knotless,
               feed-ins, locs, twists &mdash; tailored to you.
             </p>
