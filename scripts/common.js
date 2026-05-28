@@ -1,6 +1,6 @@
 // Shared UI helpers: navbar auth state, mobile nav toggle, year stamp.
 
-import { auth, onAuthStateChanged, signOut, isAdmin } from "./firebase-config.js";
+import { auth, onAuthStateChanged, signOut, isAdmin, GITHUB_REPO, GITHUB_BRANCH } from "./firebase-config.js";
 import { getSiteContent } from "./site-content.js";
 
 export function injectNav(activeKey = "") {
@@ -136,6 +136,15 @@ export function rootPath() {
   return /\/pages\//.test(path) ? "../" : "./";
 }
 
+// Photos committed via the admin upload land on GitHub immediately, but GitHub
+// Pages only republishes on the next Actions run. Loading from raw.githubusercontent.com
+// shows new uploads right away without waiting for Pages.
+function githubRawUrl(repoRelativePath) {
+  if (!GITHUB_REPO || GITHUB_REPO.includes("REPLACE_WITH")) return null;
+  const clean = String(repoRelativePath).replace(/^\.?\/+/, "");
+  return `https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}/${clean}`;
+}
+
 // Build a path to an image in /images/styles relative to current page.
 // Accepts either a bare filename ("knotless-medium.jpg") or a path inside the
 // repo ("images/styles/knotless-medium.jpg") — both resolve to the right URL.
@@ -143,8 +152,8 @@ export function styleImgSrc(filename) {
   if (!filename) return "";
   if (/^https?:/.test(filename)) return filename;
   const trimmed = filename.replace(/^\.?\/+/, "");
-  if (trimmed.startsWith("images/")) return `${rootPath()}${trimmed}`;
-  return `${rootPath()}images/styles/${trimmed}`;
+  const path = trimmed.startsWith("images/") ? trimmed : `images/styles/${trimmed}`;
+  return githubRawUrl(path) || `${rootPath()}${path}`;
 }
 
 // Build a URL for any image path inside the repo, resolved from the current
@@ -154,7 +163,7 @@ export function siteImgSrc(path) {
   if (!path) return "";
   if (/^https?:/.test(path)) return path;
   const trimmed = String(path).replace(/^\.?\/+/, "");
-  return `${rootPath()}${trimmed}`;
+  return githubRawUrl(trimmed) || `${rootPath()}${trimmed}`;
 }
 
 // Tiny query-string helpers
