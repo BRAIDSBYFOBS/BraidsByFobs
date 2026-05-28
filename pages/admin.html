@@ -33,6 +33,15 @@
       padding: 6px 12px; font-size: 0.82rem;
     }
 
+    /* Action buttons for "Upload to GitHub" inside image fields */
+    .repo-actions {
+      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    }
+    .repo-actions .btn { text-decoration: none; }
+    .repo-actions-empty {
+      color: var(--color-muted); font-size: 0.85rem;
+    }
+
     /* Stat cards (used by Inventory + Expenses) */
     .stat-grid {
       display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -337,15 +346,20 @@
                        onerror="this.style.display='none'">
                   <div style="flex:1">
                     ${canUploadViaFunction()
-                      ? `<input type="file" accept="image/*" id="style-photo-input" style="font-size:0.9rem">
-                         <div class="upload-status" id="style-photo-status">Pick a photo — it gets committed to <code>images/styles/</code> in the repo.</div>`
-                      : ""}
+                      ? `<label class="btn btn-primary" for="style-photo-input" style="text-decoration:none; cursor:pointer">
+                           <span aria-hidden="true">📸</span> Choose photo
+                         </label>
+                         <input type="file" accept="image/*" id="style-photo-input" hidden>
+                         <div class="upload-status" id="style-photo-status" style="margin-top:6px">
+                           Pick a photo from your device. We compress it, commit it into <code>images/styles/</code> in the repo, and fill in the field below automatically.
+                         </div>`
+                      : repoButtons("images/styles")}
                     <input name="image" id="style-image-url" value="${escapeHtml(existing.image || "")}"
-                      placeholder="e.g. knotless-medium.jpg" style="font-size:0.92rem; margin-top:8px">
+                      placeholder="e.g. knotless-medium.jpg" style="font-size:0.92rem; margin-top:10px">
                     <div class="upload-status">
                       ${canUploadViaFunction()
                         ? `Or type a filename / path that's already in <code>images/styles/</code>.`
-                        : `Filename of a photo in <code>images/styles/</code>. ${repoLinks("images/styles")}`}
+                        : `After committing on GitHub, paste the filename above and click Save.`}
                     </div>
                   </div>
                 </div>
@@ -657,17 +671,22 @@
                onerror="this.style.display='none'" alt="">
           <div style="flex:1">
             ${canUploadViaFunction()
-              ? `<input type="file" accept="image/*" id="${key}-file" style="font-size:0.9rem">
-                 <div class="upload-status" id="${key}-status">Pick a photo — it gets committed to <code>images/site/</code> in the repo.</div>`
-              : ""}
+              ? `<label class="btn btn-primary" for="${key}-file" style="text-decoration:none; cursor:pointer">
+                   <span aria-hidden="true">📸</span> Choose photo
+                 </label>
+                 <input type="file" accept="image/*" id="${key}-file" hidden>
+                 <div class="upload-status" id="${key}-status" style="margin-top:6px">
+                   Pick a photo from your device. It gets committed into <code>images/site/</code> in the repo automatically.
+                 </div>`
+              : repoButtons("images/site")}
             <input name="${inputName}" id="${key}-url"
                    value="${escapeHtml(currentUrl || "")}"
                    placeholder="e.g. images/site/${key}.jpg"
-                   style="font-size:0.92rem; margin-top:8px">
+                   style="font-size:0.92rem; margin-top:10px">
             <div class="upload-status">
               ${canUploadViaFunction()
                 ? `Or type a path already inside the repo.`
-                : `Path of the photo inside the repo. ${repoLinks("images/site")}`}
+                : `After committing on GitHub, paste the filename above (e.g. <code>hero.jpg</code>) and click Save.`}
             </div>
           </div>
         </div>
@@ -720,6 +739,28 @@
         <a href="${upload}" target="_blank" rel="noopener">Upload a photo to GitHub →</a>
         &middot;
         <a href="${browse}" target="_blank" rel="noopener">Browse existing</a>
+      `;
+    }
+
+    function repoButtons(folder) {
+      const upload = githubUploadUrl(folder);
+      const browse = githubBrowseUrl(folder);
+      if (!upload) {
+        return `
+          <div class="repo-actions-empty">
+            <em>Set <code>GITHUB_REPO</code> in <code>scripts/firebase-config.js</code> to enable the upload button.</em>
+          </div>
+        `;
+      }
+      return `
+        <div class="repo-actions">
+          <a class="btn btn-primary" href="${upload}" target="_blank" rel="noopener">
+            <span aria-hidden="true">📸</span> Upload photo to GitHub
+          </a>
+          <a class="btn btn-ghost small-btn" href="${browse}" target="_blank" rel="noopener">
+            Browse uploaded files
+          </a>
+        </div>
       `;
     }
 
