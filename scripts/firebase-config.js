@@ -34,7 +34,7 @@ export const firebaseConfig = {
 // URL of your deployed `createCheckoutSession` Cloud Function.
 // After `firebase deploy --only functions`, paste the URL here.
 // Example: "https://us-central1-yourproj.cloudfunctions.net/createCheckoutSession"
-export const FUNCTIONS_BASE_URL = "";
+export const FUNCTIONS_BASE_URL = "https://uploadimage-2agee2jgtq-uc.a.run.app";
 
 // Admin email allowlist — these users see the /admin page.
 // (Also enforced in Firestore security rules.)
@@ -138,7 +138,11 @@ export async function uploadImageToRepo(file, folder) {
   const contentBase64 = await fileToBase64(compressed);
   const idToken = await auth.currentUser.getIdToken();
 
-  const resp = await fetch(`${FUNCTIONS_BASE_URL}/uploadImage`, {
+  const base = FUNCTIONS_BASE_URL.replace(/\/$/, "");
+  // Gen-2 deploy prints a *.run.app URL that IS the function — no /uploadImage suffix.
+  const url = /\.run\.app$/i.test(base) ? base : `${base}/uploadImage`;
+
+  const resp = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
