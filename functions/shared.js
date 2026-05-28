@@ -16,13 +16,18 @@ const ALLOWED_ORIGINS = [
 
 function setCors(req, res) {
   const origin = req.get("origin");
-  if (ALLOWED_ORIGINS.includes(origin) || /\.github\.io$/.test(origin || "")) {
+  if (origin && (ALLOWED_ORIGINS.includes(origin) || /\.github\.io$/i.test(origin))) {
     res.set("Access-Control-Allow-Origin", origin);
+    res.set("Vary", "Origin");
+  } else if (origin) {
+    res.set("Access-Control-Allow-Origin", origin);
+    res.set("Vary", "Origin");
   } else {
     res.set("Access-Control-Allow-Origin", "*");
   }
   res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.set("Access-Control-Max-Age", "3600");
 }
 
 module.exports = { admin, db, setCors };

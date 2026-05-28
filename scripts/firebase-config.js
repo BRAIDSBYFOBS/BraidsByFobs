@@ -154,6 +154,12 @@ export async function uploadImageToRepo(file, folder) {
       contentBase64,
       contentType: compressed.type
     })
+  }).catch((err) => {
+    throw new Error(
+      err.message === "Failed to fetch"
+        ? "Could not reach the upload server (network/CORS). If this persists, redeploy functions with invoker:public or run the gcloud invoker fix in the README."
+        : err.message
+    );
   });
 
   let body = null;

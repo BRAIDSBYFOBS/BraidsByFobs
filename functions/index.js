@@ -30,7 +30,17 @@ const ALLOWED_FOLDERS = new Set(["styles", "site"]);
 const FILENAME_RE = /^[A-Za-z0-9._-]+\.(jpg|jpeg|png|webp|gif)$/i;
 
 exports.uploadImage = onRequest(
-  { secrets: [GITHUB_TOKEN] },
+  {
+    secrets: [GITHUB_TOKEN],
+    // Browser calls from GitHub Pages must reach the handler (auth is checked inside).
+    invoker: "public",
+    cors: [
+      "http://localhost:5500",
+      "http://127.0.0.1:5500",
+      "http://localhost:5000",
+      /\.github\.io$/
+    ]
+  },
   async (req, res) => {
     setCors(req, res);
     if (req.method === "OPTIONS") return res.status(204).send("");
