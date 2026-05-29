@@ -5,8 +5,9 @@
 // ------------------------------------------------------------
 // 1. Replace the firebaseConfig values below with your own from
 //    Firebase Console > Project Settings > General > Your apps.
-// 2. The Cloud Functions URL is for admin image uploads only (uploadImage).
-//    Booking does not use Stripe or checkout — payments are due at the appointment.
+// 2. The Cloud Functions URL is filled in after you deploy
+//    Functions ("firebase deploy --only functions"). Until then,
+//    Stripe checkout will throw a friendly error.
 // ============================================================
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -31,7 +32,9 @@ export const firebaseConfig = {
     appId: "1:594130482778:web:299cb5e2e5c55b80b84a63"
 };
 
-// URL of your deployed `uploadImage` Cloud Function (admin photo uploads).
+// URL of your deployed `createCheckoutSession` Cloud Function.
+// After `firebase deploy --only functions`, paste the URL here.
+// Example: "https://us-central1-yourproj.cloudfunctions.net/createCheckoutSession"
 export const FUNCTIONS_BASE_URL = "https://uploadimage-2agee2jgtq-uc.a.run.app";
 
 // Admin email allowlist — these users see the /admin page.
@@ -39,7 +42,7 @@ export const FUNCTIONS_BASE_URL = "https://uploadimage-2agee2jgtq-uc.a.run.app";
 export const ADMIN_EMAILS = ["blessingfobs@gmail.com"];
 
 // Bump this when you push a release so browsers pick up CSS/JS changes.
-export const SITE_VERSION = "2026.05.28.1";
+export const SITE_VERSION = "2026.05.28";
 
 // GitHub repo that hosts the site. Used by the admin "Upload photo" buttons
 // to deep-link to the right /upload/<branch>/images/... page on GitHub so the
