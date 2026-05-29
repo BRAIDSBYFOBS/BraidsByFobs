@@ -49,15 +49,19 @@ service cloud.firestore {
     }
 
     // ---- bookings ----
-    // A booking can be created by anyone (guest checkout supported), but the
-    // creator must store their own uid (or null) and cannot pre-confirm status.
+    // Anyone can create a booking (guest or signed-in). Without Stripe, bookings
+    // are created as confirmed with payment due at the appointment.
     match /bookings/{bookingId} {
       allow read: if isAdmin()
         || (isSignedIn() && resource.data.userId == request.auth.uid);
 
       allow create: if
-        request.resource.data.status == 'pending'
-        && request.resource.data.paymentStatus == 'unpaid'
+        (
+          (request.resource.data.status == 'pending'
+            && request.resource.data.paymentStatus == 'unpaid')
+          || (request.resource.data.status == 'confirmed'
+            && request.resource.data.paymentStatus == 'due_at_appointment')
+        )
         && (request.resource.data.userId == null
             || (isSignedIn() && request.resource.data.userId == request.auth.uid));
 

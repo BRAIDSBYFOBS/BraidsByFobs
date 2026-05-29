@@ -18,7 +18,7 @@ export const DEFAULT_CONTENT = {
   features: [
     { title: "Pick a style", body: "Explore the gallery and read what's included for each style." },
     { title: "Choose your time", body: "Real-time calendar shows when we're actually available." },
-    { title: "Pay your deposit", body: "Secure your slot with a small deposit. Balance due at your appointment." }
+    { title: "Confirm & go", body: "Lock in your slot — pay at your appointment. Message us on WhatsApp to confirm." }
   ],
   featured: {
     eyebrow: "Most loved",
@@ -42,7 +42,7 @@ export const DEFAULT_CONTENT = {
   },
   cta: {
     heading: "Ready for your next style?",
-    body: "Pick a date, lock it in with a deposit, and show up to be pampered.",
+    body: "Pick a date, confirm online, and show up to be pampered. Payment due at your appointment.",
     ctaLabel: "Book your appointment",
     imageUrl: ""
   },

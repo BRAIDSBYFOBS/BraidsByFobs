@@ -169,6 +169,23 @@ export function siteImgSrc(path) {
 // Tiny query-string helpers
 export const qs = (k) => new URLSearchParams(window.location.search).get(k);
 
+/** wa.me link for WhatsApp — phone can include spaces, dashes, +1, etc. */
+export function whatsAppLink(phone, message) {
+  const digits = String(phone || "").replace(/\D/g, "");
+  if (!digits || /^0+$/.test(digits)) return null;
+  return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
+}
+
+/** mailto link with subject + body (opens the user's email app). */
+export function mailtoLink(email, subject, body) {
+  const to = String(email || "").trim();
+  if (!to) return null;
+  const q = [];
+  if (subject) q.push(`subject=${encodeURIComponent(subject)}`);
+  if (body) q.push(`body=${encodeURIComponent(body)}`);
+  return `mailto:${to}${q.length ? "?" + q.join("&") : ""}`;
+}
+
 // Toast-ish alert utility
 export function showAlert(container, message, type = "error") {
   if (!container) return;

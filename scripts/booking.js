@@ -2,12 +2,12 @@
 //   1. Pick style
 //   2. Pick date + time slot (filtering out unavailable slots in Firestore)
 //   3. Confirm contact info
-//   4. Send to checkout
+//   4. Save confirmed booking + redirect to success page
 
 import {
-  auth, db, collection, doc, getDoc, getDocs, addDoc, setDoc,
+  auth, db, collection, doc, getDoc, getDocs, addDoc,
   query, where, serverTimestamp, onAuthStateChanged,
-  FUNCTIONS_BASE_URL, fmtMoney, fmtDuration, fmtDate,
+  fmtMoney, fmtDuration, fmtDate,
   isPlaceholderConfig
 } from "./firebase-config.js";
 import { escapeHtml, qs, showAlert, clearAlert, styleImgSrc, rootPath } from "./common.js";
@@ -95,9 +95,9 @@ function renderSummary() {
     <div class="summary-row"><span>Service</span><span>${fmtMoney(s.priceCents)}</span></div>
     ${state.selectedDate ? `<div class="summary-row"><span>Date</span><span>${fmtDate(state.selectedDate)}</span></div>` : ""}
     ${state.selectedSlot ? `<div class="summary-row"><span>Time</span><span>${state.selectedSlot.toLocaleTimeString("en-US", {hour:"numeric", minute:"2-digit"})}</span></div>` : ""}
-    <div class="summary-row total"><span>Deposit due today</span><span>${fmtMoney(s.depositCents || 0)}</span></div>
+    <div class="summary-row total"><span>Total</span><span>${fmtMoney(s.priceCents || 0)}</span></div>
     <div style="font-size:0.78rem;color:var(--color-muted);margin-top:6px">
-      Balance of ${fmtMoney((s.priceCents || 0) - (s.depositCents || 0))} due at your appointment.
+      Payment is due at your appointment. No online deposit required.
     </div>
   `;
 }
@@ -185,7 +185,7 @@ function stepInfoHTML() {
       <div style="display:flex; justify-content:space-between; margin-top:16px">
         <button class="btn btn-ghost" type="button" id="back-step-2">&larr; Back</button>
         <button class="btn btn-primary" type="submit" id="confirm-btn">
-          Continue to checkout &rarr;
+          Confirm booking &rarr;
         </button>
       </div>
       ${!state.user ? `
@@ -234,14 +234,15 @@ function bindStepHandlers() {
       };
       const btn = document.getElementById("confirm-btn");
       btn.disabled = true;
-      btn.innerHTML = `<span class="spinner" style="width:14px;height:14px;border-width:2px"></span> Saving...`;
+      btn.innerHTML = `<span class="spinner" style="width:14px;height:14px;border-width:2px"></span> Confirming...`;
       try {
         const bookingId = await createBooking();
-        await goToCheckout(bookingId);
+        stashConfirmation(bookingId);
+        window.location.href = `${rootPath()}pages/success.html?bookingId=${encodeURIComponent(bookingId)}`;
       } catch (err) {
         showAlert(alertSlot, err.message);
         btn.disabled = false;
-        btn.textContent = "Continue to checkout →";
+        btn.textContent = "Confirm booking →";
       }
     });
   }
@@ -410,7 +411,7 @@ async function fetchTakenSlots(date) {
   }
 }
 
-// ----- Create booking + checkout
+// ----- Create booking (confirmed — no Stripe yet)
 async function createBooking() {
   const s = state.selectedStyle;
   const start = state.selectedSlot;
@@ -426,18 +427,13 @@ async function createBooking() {
     durationMin: s.durationMin,
     startAt: start,
     endAt: end,
-    status: "pending",       // becomes "confirmed" after Stripe webhook
-    paymentStatus: "unpaid",
+    status: "confirmed",
+    paymentStatus: "due_at_appointment",
     createdAt: serverTimestamp()
   };
 
-  // If Firestore isn't configured yet, stash locally so the demo flow finishes.
   if (isPlaceholderConfig) {
     const localId = "local-" + Date.now();
-    sessionStorage.setItem("pendingBooking", JSON.stringify({
-      ...bookingData, id: localId,
-      startAt: start.toISOString(), endAt: end.toISOString()
-    }));
     return localId;
   }
 
@@ -445,41 +441,24 @@ async function createBooking() {
     const ref = await withTimeout(addDoc(collection(db, "bookings"), bookingData), 6000, "addDoc");
     return ref.id;
   } catch (err) {
-    console.warn("Firestore unavailable; stashing booking locally.", err.message);
-    const localId = "local-" + Date.now();
-    sessionStorage.setItem("pendingBooking", JSON.stringify({
-      ...bookingData, id: localId,
-      startAt: start.toISOString(), endAt: end.toISOString()
-    }));
-    return localId;
+    console.warn("Firestore unavailable.", err.message);
+    throw new Error(`Couldn't save your booking. ${err.message}`);
   }
 }
 
-async function goToCheckout(bookingId) {
-  // If Functions URL is not set, drop user on success page with a friendly notice.
-  if (!FUNCTIONS_BASE_URL) {
-    window.location.href = `success.html?bookingId=${encodeURIComponent(bookingId)}&demo=1`;
-    return;
-  }
-
-  try {
-    const res = await fetch(`${FUNCTIONS_BASE_URL}/createCheckoutSession`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        bookingId,
-        styleId: state.selectedStyle.id,
-        successUrl: `${window.location.origin}${rootPath()}pages/success.html?bookingId=${encodeURIComponent(bookingId)}`,
-        cancelUrl: window.location.href
-      })
-    });
-    if (!res.ok) throw new Error(`Checkout failed: ${res.status}`);
-    const { url } = await res.json();
-    if (!url) throw new Error("No checkout URL returned");
-    window.location.href = url;
-  } catch (err) {
-    throw new Error(`Couldn't start checkout. ${err.message}`);
-  }
+function stashConfirmation(bookingId) {
+  const s = state.selectedStyle;
+  const start = state.selectedSlot;
+  const end = new Date(start.getTime() + s.durationMin * 60000);
+  sessionStorage.setItem("confirmedBooking", JSON.stringify({
+    id: bookingId,
+    styleName: s.name,
+    priceCents: s.priceCents,
+    durationMin: s.durationMin,
+    startAt: start.toISOString(),
+    endAt: end.toISOString(),
+    customer: { ...state.customer }
+  }));
 }
 
 // ----- date helpers
