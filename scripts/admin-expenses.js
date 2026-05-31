@@ -297,8 +297,8 @@ function barChartSvg(months, forecast) {
     const v = (maxVal * i) / yTicks;
     const y = PAD_T + chartH - (chartH * i) / yTicks;
     return `
-      <line x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}" stroke="#f0dce8" stroke-width="1"/>
-      <text x="${PAD_L - 6}" y="${y + 3}" text-anchor="end" font-size="10" fill="#8e6b91">${fmtMoneyShort(v)}</text>
+      <line x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}" stroke="#ecd0de" stroke-width="1"/>
+      <text x="${PAD_L - 6}" y="${y + 3}" text-anchor="end" font-size="10" fill="#8a4d6e">${fmtMoneyShort(v)}</text>
     `;
   }).join("");
 
@@ -309,10 +309,10 @@ function barChartSvg(months, forecast) {
     const isCurrent = i === months.length - 1;
     return `
       <rect x="${x}" y="${y}" width="${bw}" height="${h}" rx="3"
-            fill="${isCurrent ? "#f0a0c8" : "#a855a0"}" opacity="${isCurrent ? 0.9 : 1}">
+            fill="${isCurrent ? "#f4a6c8" : "#a91372"}" opacity="${isCurrent ? 0.9 : 1}">
         <title>${escapeHtml(m.label)}: ${fmtMoney(m.total)}</title>
       </rect>
-      <text x="${x + bw / 2}" y="${H - PAD_B + 14}" text-anchor="middle" font-size="10" fill="#8e6b91">${escapeHtml(m.label)}</text>
+      <text x="${x + bw / 2}" y="${H - PAD_B + 14}" text-anchor="middle" font-size="10" fill="#8a4d6e">${escapeHtml(m.label)}</text>
     `;
   }).join("");
 
@@ -323,10 +323,10 @@ function barChartSvg(months, forecast) {
     const y = PAD_T + chartH - h;
     forecastMark = `
       <rect x="${x}" y="${y}" width="${bw}" height="${h}" rx="3"
-            fill="none" stroke="#f0a0c8" stroke-width="2" stroke-dasharray="4 3">
+            fill="none" stroke="#d4a574" stroke-width="2" stroke-dasharray="4 3">
         <title>Forecast: ${fmtMoney(forecast.headline)}</title>
       </rect>
-      <text x="${x + bw / 2}" y="${H - PAD_B + 14}" text-anchor="middle" font-size="10" fill="#e07aab">Forecast</text>
+      <text x="${x + bw / 2}" y="${H - PAD_B + 14}" text-anchor="middle" font-size="10" fill="#a91372">Forecast</text>
     `;
   }
 

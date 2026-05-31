@@ -84,7 +84,7 @@ function renderSummary() {
   }
   summary.innerHTML = `
     <div style="display:flex; gap:12px; align-items:center; margin-bottom:14px">
-      <div style="width:56px;height:70px;border-radius:8px;background:#e7ddd1;overflow:hidden;flex-shrink:0">
+      <div style="width:56px;height:70px;border-radius:8px;background:var(--color-rose-light);overflow:hidden;flex-shrink:0">
         ${s.image ? `<img src="${styleImgSrc(s.image)}" alt="" style="width:100%;height:100%;object-fit:cover" onerror="this.remove()">` : ""}
       </div>
       <div>

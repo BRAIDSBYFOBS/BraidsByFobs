@@ -42,7 +42,7 @@ export const FUNCTIONS_BASE_URL = "https://uploadimage-2agee2jgtq-uc.a.run.app";
 export const ADMIN_EMAILS = ["blessingfobs@gmail.com"];
 
 // Bump this when you push a release so browsers pick up CSS/JS changes.
-export const SITE_VERSION = "2026.05.28";
+export const SITE_VERSION = "2026.05.28.2";
 
 // GitHub repo that hosts the site. Used by the admin "Upload photo" buttons
 // to deep-link to the right /upload/<branch>/images/... page on GitHub so the
